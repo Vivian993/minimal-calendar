@@ -1685,7 +1685,10 @@ function renderBottomNav() {
       if (longPressed) return;
       if (index === 4) {
         openAppearanceSheet();
-      } else if (index === 0 || index === 1 || index === 3) {
+      } else if (index === 0) {
+        goToTodayMonth();
+        switchTab(0);
+      } else if (index === 1 || index === 3) {
         switchTab(index);
       } else {
         showToast(`「${item.title}」功能開發中，敬請期待`);
@@ -1694,6 +1697,14 @@ function renderBottomNav() {
 
     container.appendChild(btn);
   });
+}
+
+function goToTodayMonth(){
+  const now = new Date();
+  viewYear = now.getFullYear();
+  viewMonth = now.getMonth() + 1;
+  selectedDateKey = dateKeyOf(viewYear, viewMonth, now.getDate());
+  renderGrid();
 }
 
 function switchTab(index){
@@ -2561,11 +2572,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('todayBtn').addEventListener('click', () => {
-    const now = new Date();
-    viewYear = now.getFullYear();
-    viewMonth = now.getMonth() + 1;
-    selectedDateKey = dateKeyOf(viewYear, viewMonth, now.getDate());
-    renderGrid();
+    goToTodayMonth();
   });
 
   document.getElementById('adminBtn').addEventListener('click', () => {

@@ -1,0 +1,1713 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>我的極簡風格日曆</title>
+
+<!-- 📌 iPhone 桌面 App 圖示：它會去抓您上傳到 GitHub 的 custom-icon.png 照片 -->
+<link rel="apple-touch-icon" href="custom-icon.png">
+<link rel="icon" type="image/png" href="custom-icon.png">
+
+<style>
+  :root {
+    /* 淺色莫蘭迪質感配色 */
+    --bg-outside: #A3D19B;
+    --app-bg: #FFFFFF;
+    --card-sub-bg: #F8F9FA;
+    --text-primary: #1A1A1A;
+    --text-secondary: #8E8E93;
+    --text-muted: #C7C7CC;
+    --border-grid: #E5E5EA;
+
+    --weekend-sun: #E57373;
+    --weekend-sat: #74A2C5;
+
+    --accent: #3A69D6;
+    --accent-green: #58B175;
+    --danger: #E53E3E;
+
+    --shadow-pop: 0 10px 30px rgba(0, 0, 0, 0.12);
+    --glass-bg: rgba(255, 255, 255, 0.92);
+    --glass-border: rgba(255, 255, 255, 0.6);
+  }
+
+  [data-theme="dark"] {
+    --bg-outside: #1B261B;
+    --app-bg: #1C1C1E;
+    --card-sub-bg: #2C2C2E;
+    --text-primary: #F2F2F7;
+    --text-secondary: #98989D;
+    --text-muted: #48484A;
+    --border-grid: #2C2C2E;
+
+    --weekend-sun: #FF6B6B;
+    --weekend-sat: #64B5F6;
+
+    --glass-bg: rgba(30, 30, 32, 0.92);
+    --glass-border: rgba(255, 255, 255, 0.1);
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+  html, body {
+    margin: 0; padding: 0;
+    height: 100%; width: 100%;
+    background-color: var(--bg-outside);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "PingFang TC", "Helvetica Neue", sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .phone-frame {
+    width: 100%;
+    max-width: 430px;
+    height: 100%;
+    max-height: 932px;
+    background-color: var(--app-bg);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+  }
+
+  @media (min-width: 440px) {
+    .phone-frame {
+      height: 92vh;
+      border-radius: 44px;
+      border: 8px solid #333;
+    }
+  }
+
+  /* 頂部 StatusBar & 導覽區 */
+  .top-bar {
+    padding: calc(env(safe-area-inset-top) + 12px) 16px 8px;
+    background: var(--app-bg);
+    flex: 0 0 auto;
+    z-index: 10;
+  }
+
+  .status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .month-selector {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .month-nav-btn {
+    border: none;
+    background: var(--card-sub-bg);
+    color: var(--text-primary);
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    font-size: 0.95rem;
+    font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .month-label {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    min-width: 92px;
+    text-align: center;
+  }
+
+  .header-capsule-actions {
+    display: flex;
+    align-items: center;
+    background: var(--card-sub-bg);
+    border-radius: 20px;
+    padding: 3px 8px;
+    gap: 4px;
+  }
+
+  .capsule-btn {
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+
+  /* 星期欄標頭 */
+  .weekday-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-grid);
+  }
+  .weekday-grid div:first-child { color: var(--weekend-sun); }
+  .weekday-grid div:last-child { color: var(--weekend-sat); }
+
+  /* 日曆 6 欄網格 */
+  .calendar-container {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+    background-color: var(--app-bg);
+    position: relative;
+    user-select: none;
+  }
+
+  .day-cell {
+    border-right: 1px solid var(--border-grid);
+    border-bottom: 1px solid var(--border-grid);
+    padding: 2px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .day-cell:nth-child(7n) { border-right: none; }
+  .day-cell.other-month { opacity: 0.35; }
+
+  .day-number {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    padding: 2px 4px;
+    line-height: 1;
+  }
+  .day-cell.sun .day-number { color: var(--weekend-sun); }
+  .day-cell.sat .day-number { color: var(--weekend-sat); }
+  .day-cell.is-today .day-number {
+    background: var(--accent);
+    color: #fff;
+    border-radius: 50%;
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
+  }
+
+  .day-cell.selected-ring { box-shadow: inset 0 0 0 2px var(--accent); z-index: 2; }
+
+  /* 行程標籤層 */
+  .events-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 2px;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .event-tag {
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.25;
+    max-height: 16px;
+  }
+  .event-tag.span-start { border-top-right-radius: 0; border-bottom-right-radius: 0; margin-right: -3px; }
+  .event-tag.span-mid { border-radius: 0; margin-left: -3px; margin-right: -3px; }
+  .event-tag.span-end { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -3px; }
+  .event-tag.todo-marker{
+    background: transparent;
+    border: 1.4px dashed var(--text-secondary);
+    color: var(--text-primary);
+  }
+  .event-tag.todo-marker.done{
+    opacity: .55;
+    text-decoration: line-through;
+    border-style: solid;
+  }
+
+  /* 懸浮「今天」按鈕 */
+  .today-floating-btn {
+    position: absolute;
+    bottom: calc(env(safe-area-inset-bottom) + 70px);
+    left: 16px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border-grid);
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    cursor: pointer;
+    z-index: 20;
+  }
+
+  /* 彈出選單 */
+  .action-menu {
+    position: absolute;
+    bottom: calc(env(safe-area-inset-bottom) + 70px);
+    right: 16px;
+    width: 220px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 8px;
+    box-shadow: var(--shadow-pop);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 30;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  .action-menu.hidden {
+    transform: scale(0.9) translateY(20px);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+  }
+  .menu-item:active{ background: var(--card-sub-bg); }
+  .menu-divider{ height:1px; background:var(--border-grid); margin:4px 6px; }
+
+  /* 底部 Navigation Bar */
+  .bottom-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    background: var(--app-bg);
+    border-top: 1px solid var(--border-grid);
+    padding: 6px 0 calc(env(safe-area-inset-bottom) + 6px);
+    flex: 0 0 auto;
+    z-index: 10;
+  }
+
+  .nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    width: 20%;
+    position: relative;
+    user-select: none;
+  }
+
+  .nav-btn.active { color: #E85575; }
+
+  .nav-btn .nav-icon {
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px; height: 26px;
+  }
+
+  .nav-btn .nav-icon img {
+    width: 22px;
+    height: 22px;
+    object-fit: cover;
+    border-radius: 6px;
+  }
+
+  /* 彈出Sheet視窗 */
+  .sheet-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(4px);
+    z-index: 50;
+    display: flex;
+    align-items: flex-end;
+  }
+  .sheet-overlay.hidden { display: none; }
+
+  .sheet-content {
+    width: 100%;
+    background: var(--app-bg);
+    border-radius: 28px 28px 0 0;
+    padding: 20px 20px calc(24px + env(safe-area-inset-bottom));
+    max-height: 85vh;
+    overflow-y: auto;
+    color: var(--text-primary);
+  }
+
+  .sheet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .sheet-title { font-size: 1.4rem; font-weight: 800; }
+  .sheet-sub { font-size: 0.98rem; color: var(--text-secondary); margin-bottom: 14px; }
+
+  .existing-list{ display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+  .existing-item{
+    display:flex; align-items:center; gap:10px;
+    background: var(--card-sub-bg);
+    border-radius: 14px; padding: 10px 12px;
+  }
+  .existing-item .dot{ width:10px; height:10px; border-radius:50%; flex:0 0 auto; }
+  .existing-item .txt{ flex:1; font-size: 1.15rem; font-weight: 700; }
+  .existing-item .span-badge{ font-size:.72rem; color:var(--text-secondary); font-weight:700; }
+  .existing-item button{
+    border:none; background:none; font-size:1.5rem; cursor:pointer; padding:2px 8px; color: var(--danger);
+  }
+  .empty-hint{ color: var(--text-secondary); font-size: 1.05rem; padding: 4px 2px 8px; }
+
+  .field-label{ font-size:1rem; font-weight:800; margin: 16px 0 7px; color: var(--text-primary); }
+
+  .template-row{
+    display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 4px;
+  }
+  .template-chip{
+    border:1px solid var(--border-grid);
+    background: var(--card-sub-bg);
+    color: var(--text-primary);
+    border-radius: 18px;
+    padding: 9px 16px;
+    font-size: 1.02rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .palette-picker {
+    display: flex;
+    gap: 8px;
+    margin: 6px 0 4px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .color-chip {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    flex: 0 0 auto;
+    border: 2px solid transparent;
+  }
+  .color-chip.active {
+    transform: scale(1.15);
+    border-color: var(--text-primary);
+  }
+
+  .input-box {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border-grid);
+    background: var(--card-sub-bg);
+    color: var(--text-primary);
+    font-size: 1.15rem;
+    margin-bottom: 12px;
+  }
+  .row-2 { display:flex; gap:10px; }
+  .row-2 > div{ flex:1; }
+
+  .btn-primary {
+    width: 100%;
+    padding: 14px;
+    background: #1A1A1A;
+    color: #FFF;
+    border: none;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 1.12rem;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+  [data-theme="dark"] .btn-primary {
+    background: #E5E5EA;
+    color: #1A1A1A;
+  }
+  .btn-secondary{
+    width:100%; padding:14px; background: var(--card-sub-bg); color: var(--text-primary);
+    border:1px solid var(--border-grid); border-radius:14px; font-weight:700; font-size:1.12rem; cursor:pointer; margin-top:8px;
+  }
+  .btn-danger{ background: var(--danger); color:#fff; }
+  .btn-row{ display:flex; gap:10px; }
+  .btn-row > *{ margin-top: 8px; }
+
+  .toast {
+    position: absolute;
+    top: 50px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.8);
+    color: #FFF;
+    padding: 10px 18px;
+    border-radius: 20px;
+    font-size: 1rem;
+    font-weight: 600;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.25s;
+    pointer-events: none;
+    max-width: 80%;
+    text-align: center;
+  }
+  .toast.show { opacity: 1; }
+
+  .admin-section {
+    border-bottom: 1px solid var(--border-grid);
+    padding-bottom: 14px;
+    margin-bottom: 14px;
+  }
+  .admin-section:last-child{ border-bottom:none; }
+  .admin-section h4 { margin: 0 0 8px; font-size: 1.12rem; }
+  .admin-section p.hint{ font-size:0.9rem; color:var(--text-secondary); margin: -4px 0 10px; line-height:1.55; }
+
+  .switch-row{
+    display:flex; align-items:center; justify-content:space-between;
+    background: var(--card-sub-bg); border-radius: 12px; padding: 10px 12px; margin-bottom: 10px;
+  }
+  .switch-row span{ font-size:1.05rem; font-weight:700; }
+
+  .theme-option-grid{
+    display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:6px; margin-bottom:10px;
+  }
+  .theme-option{
+    border:2px solid var(--border-grid);
+    border-radius:18px;
+    background: var(--card-sub-bg);
+    padding:12px;
+    display:flex; flex-direction:column; align-items:center; gap:10px;
+    font-size:1.02rem; font-weight:800; color:var(--text-primary);
+    cursor:pointer;
+  }
+  .theme-option.active{ border-color: var(--accent); }
+  .theme-preview{
+    width:100%; aspect-ratio:3/4; border-radius:12px; padding:10px;
+    display:flex; flex-direction:column; gap:8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  }
+  .theme-preview-light{ background:#FFFFFF; border:1px solid #E5E5EA; }
+  .theme-preview-dark{ background:#1C1C1E; border:1px solid #2C2C2E; }
+  .theme-preview .tp-bar{ height:14px; border-radius:6px; background:#3A69D6; width:60%; }
+  .theme-preview-light .tp-line{ height:8px; border-radius:4px; background:#E5E5EA; }
+  .theme-preview-dark .tp-line{ height:8px; border-radius:4px; background:#2C2C2E; }
+  .theme-preview .tp-line.short{ width:60%; }
+  .switch{
+    position:relative; width:44px; height:26px; border-radius:14px; background: var(--border-grid); cursor:pointer; flex:0 0 auto;
+  }
+  .switch.on{ background: var(--accent-green); }
+  .switch .knob{
+    position:absolute; top:2px; left:2px; width:22px; height:22px; border-radius:50%; background:#fff;
+    transition: left .15s ease; box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  }
+  .switch.on .knob{ left:20px; }
+
+  /* ============ 待辦 / 記帳 頁面共用 ============ */
+  .view-wrap{
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--app-bg);
+  }
+  .view-wrap.hidden{ display:none; }
+  #calendarView{
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  #calendarView.hidden{ display:none; }
+  .view-top-bar{
+    padding: calc(env(safe-area-inset-top) + 14px) 16px 10px;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    flex: 0 0 auto;
+  }
+  .view-title{ font-size:1.25rem; font-weight:800; color:var(--text-primary); text-align:center; flex:1; }
+  .view-scroll{
+    flex:1; overflow-y:auto; padding: 4px 16px 16px;
+  }
+
+  /* 待辦 */
+  .todo-item{
+    display:flex; align-items:center; gap:12px;
+    background: var(--card-sub-bg);
+    border-radius: 14px; padding: 12px 14px; margin-bottom: 10px;
+  }
+  .todo-check{
+    width:26px; height:26px; border-radius:50%; border:2px solid var(--text-secondary);
+    flex:0 0 auto; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:.9rem; color:#fff;
+  }
+  .todo-check.done{ background: var(--accent-green); border-color: var(--accent-green); }
+  .todo-body{ flex:1; min-width:0; }
+  .todo-text{ font-size:1.08rem; font-weight:700; color:var(--text-primary); }
+  .todo-item.done .todo-text{ color:var(--text-secondary); text-decoration:line-through; }
+  .todo-due{ font-size:.8rem; color:var(--accent); font-weight:700; margin-top:2px; }
+  .todo-item.done .todo-due{ color:var(--text-secondary); }
+  .todo-item.overdue .todo-due{ color: var(--danger); }
+  .todo-del{ border:none; background:none; font-size:1.3rem; color:var(--danger); cursor:pointer; padding:2px 6px; }
+  .todo-add-bar{
+    flex:0 0 auto; display:flex; gap:8px; align-items:flex-start;
+    padding: 10px 16px calc(12px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border-grid);
+  }
+  .todo-add-bar .input-box{ flex:1; }
+  .todo-date-input{ flex: 0 0 130px; }
+  .add-round-btn{
+    width:48px; height:48px; border-radius:50%; border:none; background:#1A1A1A; color:#fff;
+    font-size:1.4rem; font-weight:800; cursor:pointer; flex:0 0 auto;
+  }
+  [data-theme="dark"] .add-round-btn{ background:#E5E5EA; color:#1A1A1A; }
+
+  /* 記帳 */
+  .budget-summary{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:8px;
+    padding: 0 16px 12px;
+    flex: 0 0 auto;
+  }
+  .budget-stat{
+    background: var(--card-sub-bg); border-radius:14px; padding:10px 8px; text-align:center;
+  }
+  .budget-stat .label{ display:block; font-size:.78rem; color:var(--text-secondary); font-weight:700; margin-bottom:4px; }
+  .budget-stat .value{ display:block; font-size:1.05rem; font-weight:900; color:var(--text-primary); }
+  .budget-stat .value.expense{ color: var(--danger); }
+  .budget-stat .value.income{ color: var(--accent-green); }
+  .budget-item{
+    display:flex; align-items:center; gap:12px;
+    background: var(--card-sub-bg); border-radius:14px; padding:12px 14px; margin-bottom:10px;
+  }
+  .budget-item .dot{ width:12px; height:12px; border-radius:50%; flex:0 0 auto; }
+  .budget-item .info{ flex:1; min-width:0; }
+  .budget-item .cat{ font-size:1.02rem; font-weight:800; color:var(--text-primary); }
+  .budget-item .note{ font-size:.82rem; color:var(--text-secondary); margin-top:2px; }
+  .budget-item .amt{ font-size:1.08rem; font-weight:900; flex:0 0 auto; }
+  .budget-item .amt.expense{ color:var(--danger); }
+  .budget-item .amt.income{ color:var(--accent-green); }
+  .budget-item .del{ border:none; background:none; font-size:1.15rem; color:var(--text-secondary); cursor:pointer; padding:2px 4px; }
+  .budget-add-btn{ left:auto !important; right:16px; }
+
+  .type-toggle{
+    display:flex; background: var(--card-sub-bg); border-radius:14px; padding:4px; gap:4px;
+  }
+  .type-toggle-btn{
+    flex:1; border:none; background:transparent; padding:10px; border-radius:11px;
+    font-size:1.02rem; font-weight:800; color:var(--text-secondary); cursor:pointer;
+  }
+  .type-toggle-btn.active{ background:#fff; color:var(--text-primary); box-shadow:0 1px 4px rgba(0,0,0,.1); }
+  [data-theme="dark"] .type-toggle-btn.active{ background:#3A3A3C; color:#fff; }
+  .category-chip{
+    border:1px solid var(--border-grid);
+    background: var(--card-sub-bg);
+    color: var(--text-primary);
+    border-radius: 18px;
+    padding: 9px 16px;
+    font-size: 1.02rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .category-chip.active{ border-color: var(--accent); background: var(--accent); color:#fff; }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+
+  <div class="toast" id="toast">已更新設定</div>
+
+  <!-- ============ 行事曆頁 ============ -->
+  <div id="calendarView">
+    <div class="top-bar">
+      <div class="status-row">
+        <div class="month-selector">
+          <button class="month-nav-btn" id="prevMonthBtn">‹</button>
+          <span class="month-label" id="monthYearLabel">載入中...</span>
+          <button class="month-nav-btn" id="nextMonthBtn">›</button>
+        </div>
+
+        <div class="header-capsule-actions">
+          <button class="capsule-btn" id="themeBtn" title="深色模式">🌙</button>
+          <button class="capsule-btn" id="adminBtn" title="後台管理">⚙️</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="weekday-grid">
+      <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+    </div>
+
+    <div class="calendar-container" id="calendarGrid"></div>
+
+    <button class="today-floating-btn" id="todayBtn">今天</button>
+
+    <div class="action-menu hidden" id="actionMenu">
+      <button class="menu-item" id="openDayDetailBtn">
+        <span>📖</span> 查看／編輯這天
+      </button>
+      <div class="menu-divider"></div>
+      <div id="templateMenuContainer"></div>
+    </div>
+  </div>
+
+  <!-- ============ 待辦事項頁 ============ -->
+  <div id="todoView" class="view-wrap hidden">
+    <div class="view-top-bar">
+      <div class="view-title">待辦事項</div>
+    </div>
+    <div class="view-scroll" id="todoList"></div>
+    <div class="todo-add-bar">
+      <input type="text" id="todoTextInput" class="input-box" placeholder="要做的事情⋯" style="margin-bottom:0;">
+      <input type="date" id="todoDateInput" class="input-box todo-date-input" style="margin-bottom:0;">
+      <button class="add-round-btn" id="addTodoBtn">＋</button>
+    </div>
+  </div>
+
+  <!-- ============ 記帳頁 ============ -->
+  <div id="budgetView" class="view-wrap hidden">
+    <div class="view-top-bar">
+      <button class="month-nav-btn" id="budgetPrevBtn">‹</button>
+      <div class="view-title" id="budgetMonthLabel">2026年8月</div>
+      <button class="month-nav-btn" id="budgetNextBtn">›</button>
+    </div>
+    <div class="budget-summary">
+      <div class="budget-stat">
+        <span class="label">支出</span>
+        <span class="value expense" id="budgetExpenseTotal">$0</span>
+      </div>
+      <div class="budget-stat">
+        <span class="label">收入</span>
+        <span class="value income" id="budgetIncomeTotal">$0</span>
+      </div>
+      <div class="budget-stat">
+        <span class="label">結餘</span>
+        <span class="value" id="budgetNetTotal">$0</span>
+      </div>
+    </div>
+    <div class="view-scroll" id="budgetList"></div>
+    <button class="today-floating-btn budget-add-btn" id="addBudgetBtn">＋ 記一筆</button>
+  </div>
+
+  <!-- 底部選單 -->
+  <nav class="bottom-nav" id="bottomNav">
+    <!-- 動態產生按鈕 -->
+  </nav>
+
+  <!-- 編輯底欄圖示 Sheet (長按引發) -->
+  <div class="sheet-overlay hidden" id="navEditSheet">
+    <div class="sheet-content">
+      <div class="sheet-header">
+        <div class="sheet-title">編輯底欄按鈕圖示與名稱</div>
+        <button style="border:none; background:none; font-size:1.4rem; cursor:pointer; color:var(--text-primary);" onclick="closeSheet('navEditSheet')">✕</button>
+      </div>
+
+      <label class="field-label">按鈕顯示名稱</label>
+      <input type="text" class="input-box" id="editNavTitle" placeholder="例如：記帳、行程">
+
+      <label class="field-label">選擇圖片檔案</label>
+      <input type="file" class="input-box" id="editNavFileInput" accept="image/*">
+
+      <label class="field-label">或輸入圖片網址 (URL)</label>
+      <input type="text" class="input-box" id="editNavUrlInput" placeholder="https://...">
+
+      <button class="btn-primary" id="saveNavEditBtn">儲存變更</button>
+      <button class="btn-secondary btn-danger" id="resetNavBtn">重設為預設 Emoji</button>
+    </div>
+  </div>
+
+  <!-- 日期編輯 Sheet：查看／刪除／新增 -->
+  <div class="sheet-overlay hidden" id="sheetOverlay">
+    <div class="sheet-content">
+      <div class="sheet-header">
+        <div class="sheet-title" id="dayDetailTitle">日期</div>
+        <button style="border:none; background:none; font-size:1.4rem; cursor:pointer; color:var(--text-primary);" onclick="closeSheet('sheetOverlay')">✕</button>
+      </div>
+      <div class="sheet-sub" id="dayDetailSub"></div>
+
+      <div class="existing-list" id="existingList"></div>
+
+      <div class="field-label">快速範本</div>
+      <div class="template-row" id="templateChips"></div>
+
+      <div class="field-label">自訂內容</div>
+      <input type="text" class="input-box" id="eventTitleInput" placeholder="行程名稱 (例如: 早班, 牙醫, 旅行)">
+
+      <div class="row-2">
+        <div>
+          <div class="field-label" style="margin-top:0;">跨日天數</div>
+          <input type="number" class="input-box" id="eventDaysInput" value="1" min="1" max="14">
+        </div>
+        <div>
+          <div class="field-label" style="margin-top:0;">標籤顏色</div>
+          <div class="palette-picker" id="palettePicker"></div>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="saveEventBtn">儲存行程</button>
+    </div>
+  </div>
+
+  <!-- 外觀（深色／淺色）Sheet -->
+  <div class="sheet-overlay hidden" id="appearanceSheet">
+    <div class="sheet-content">
+      <div class="sheet-header">
+        <div class="sheet-title">外觀模式</div>
+        <button style="border:none; background:none; font-size:1.4rem; cursor:pointer; color:var(--text-primary);" onclick="closeSheet('appearanceSheet')">✕</button>
+      </div>
+      <div class="sheet-sub">選一個您看起來比較舒服的顏色模式</div>
+
+      <div class="theme-option-grid">
+        <button class="theme-option" id="themeOptionLight" data-theme-choice="light">
+          <div class="theme-preview theme-preview-light">
+            <div class="tp-bar"></div>
+            <div class="tp-line"></div>
+            <div class="tp-line short"></div>
+          </div>
+          <span>☀️ 淺色</span>
+        </button>
+        <button class="theme-option" id="themeOptionDark" data-theme-choice="dark">
+          <div class="theme-preview theme-preview-dark">
+            <div class="tp-bar"></div>
+            <div class="tp-line"></div>
+            <div class="tp-line short"></div>
+          </div>
+          <span>🌙 深色</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 記帳 新增/編輯 Sheet -->
+  <div class="sheet-overlay hidden" id="budgetSheet">
+    <div class="sheet-content">
+      <div class="sheet-header">
+        <div class="sheet-title">記一筆</div>
+        <button style="border:none; background:none; font-size:1.4rem; cursor:pointer; color:var(--text-primary);" onclick="closeSheet('budgetSheet')">✕</button>
+      </div>
+
+      <div class="type-toggle">
+        <button class="type-toggle-btn active" id="budgetTypeExpenseBtn" data-type="expense">支出</button>
+        <button class="type-toggle-btn" id="budgetTypeIncomeBtn" data-type="income">收入</button>
+      </div>
+
+      <div class="field-label" style="margin-top:16px;">金額</div>
+      <input type="number" class="input-box" id="budgetAmountInput" placeholder="0" inputmode="decimal">
+
+      <div class="field-label">類別</div>
+      <div class="template-row" id="budgetCategoryChips"></div>
+
+      <div class="row-2">
+        <div>
+          <div class="field-label" style="margin-top:14px;">日期</div>
+          <input type="date" class="input-box" id="budgetDateInput">
+        </div>
+        <div>
+          <div class="field-label" style="margin-top:14px;">備註（選填）</div>
+          <input type="text" class="input-box" id="budgetNoteInput" placeholder="例如：全聯">
+        </div>
+      </div>
+
+      <button class="btn-primary" id="saveBudgetBtn">儲存這筆</button>
+    </div>
+  </div>
+
+  <!-- 後台管理 Sheet -->
+  <div class="sheet-overlay hidden" id="adminSheet">
+    <div class="sheet-content">
+      <div class="sheet-header">
+        <div class="sheet-title">後台設定與管理</div>
+        <button style="border:none; background:none; font-size:1.4rem; cursor:pointer; color:var(--text-primary);" onclick="closeSheet('adminSheet')">✕</button>
+      </div>
+
+      <div class="admin-section">
+        <h4>📣 手機推播提醒（ntfy）</h4>
+        <p class="hint">填入 ntfy 主題名稱，手機安裝 ntfy App 訂閱同一個主題，就能在行程前一天自動收到提醒。免費服務，訊息會經過 ntfy.sh 伺服器轉送，建議用不容易被猜到的英數字當主題名稱。</p>
+        <div class="switch-row">
+          <span>開啟推播提醒</span>
+          <div class="switch" id="notifySwitch"><div class="knob"></div></div>
+        </div>
+        <input type="text" class="input-box" id="ntfyTopicInput" placeholder="例如：chen-family-cal-7788">
+        <div class="row-2">
+          <div>
+            <div class="field-label" style="margin-top:0;">每天提醒時間</div>
+            <input type="time" class="input-box" id="notifyTimeInput" value="08:00">
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn-secondary" id="testNotifyBtn">傳送測試通知</button>
+        </div>
+      </div>
+
+      <div class="admin-section">
+        <h4>行事曆快速範本</h4>
+        <p class="hint">長按日期時可以快速套用的項目，可以自己增加或刪除。</p>
+        <div class="existing-list" id="templateManageList"></div>
+        <input type="text" class="input-box" id="newTemplateInput" placeholder="範本名稱 (例如: 健身, 聚餐)">
+        <button class="btn-primary" id="addTemplateBtn">新增範本</button>
+      </div>
+
+      <div class="admin-section">
+        <h4>資料備份與還原</h4>
+        <p class="hint">資料是存在這台手機的瀏覽器裡，換手機或清除瀏覽器資料前，記得先匯出備份。</p>
+        <div class="btn-row">
+          <button class="btn-secondary" id="exportDataBtn">📤 匯出備份</button>
+          <button class="btn-secondary" id="importDataBtn">📥 匯入備份</button>
+        </div>
+        <input type="file" id="importFile" accept="application/json" style="display:none;">
+      </div>
+
+      <div class="admin-section">
+        <h4>重置全部行程資料</h4>
+        <button class="btn-secondary btn-danger" id="clearAllBtn">清空所有行程</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ============ 基本資料存取（localStorage，含錯誤保護） ============ */
+function loadJSON(key, fallback){
+  try{
+    const raw = localStorage.getItem(key);
+    return raw != null ? JSON.parse(raw) : fallback;
+  }catch(e){ console.error('read fail',key,e); return fallback; }
+}
+function saveJSON(key, val){
+  try{ localStorage.setItem(key, JSON.stringify(val)); return true; }
+  catch(e){ console.error('save fail',key,e); return false; }
+}
+
+/* 預設底欄選單項目 */
+let NAV_ITEMS = loadJSON('my_nav_items', [
+  { id: 0, title: '行事曆', icon: '📅', img: null },
+  { id: 1, title: '待辦', icon: '☑️', img: null },
+  { id: 2, title: '備忘錄', icon: '📝', img: null },
+  { id: 3, title: '記帳', icon: '📊', img: null },
+  { id: 4, title: '外觀', icon: '🌗', img: null }
+]);
+
+/* 自訂選單範本 */
+let TEMPLATES = loadJSON('my_templates', ['生日', '看醫生', '聚餐', '旅遊', '繳費']);
+
+/* 通知與外觀設定 */
+let SETTINGS = loadJSON('my_cal_settings_v1', { ntfyTopic:'', hour:8, minute:0, notifyEnabled:false, theme:'light' });
+
+/* 已送出的通知紀錄（避免重複發送） */
+let NOTIFLOG = loadJSON('my_cal_notiflog', {});
+
+/* 標籤配色 */
+const PALETTE = [
+  { bg: '#B2D882', text: '#2A5006' },
+  { bg: '#5B7CFA', text: '#FFFFFF' },
+  { bg: '#A2C2F8', text: '#1E3A70' },
+  { bg: '#F8B1A6', text: '#681B10' },
+  { bg: '#FFF0A5', text: '#574600' },
+  { bg: '#E3A857', text: '#FFFFFF' },
+  { bg: '#D4E157', text: '#33691E' },
+  { bg: '#E1BEE7', text: '#4A148C' }
+];
+
+const todayObj = new Date();
+let viewYear = todayObj.getFullYear();
+let viewMonth = todayObj.getMonth() + 1;
+let selectedDateKey = dateKeyOf(viewYear, viewMonth, todayObj.getDate());
+
+let activeColorIdx = 0;
+let editingNavIndex = null;
+
+let EVENTS = loadJSON('my_cal_events_v4', {});
+
+/* 待辦事項 */
+let TODOS = loadJSON('my_todos_v1', []);
+
+/* 記帳 */
+let BUDGET = loadJSON('my_budget_v1', []);
+const EXPENSE_CATS = ['餐飲','交通','購物','居家生活','娛樂','醫療','教育','其他'];
+const INCOME_CATS = ['薪資','獎金','其他收入'];
+let budgetType = 'expense';
+let budgetCategory = EXPENSE_CATS[0];
+let budgetViewYear = todayObj.getFullYear();
+let budgetViewMonth = todayObj.getMonth() + 1;
+
+function dateKeyOf(y,m,d){
+  return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+function saveEvents() { return saveJSON('my_cal_events_v4', EVENTS); }
+function saveNavItems() { return saveJSON('my_nav_items', NAV_ITEMS); }
+function saveTemplates() { return saveJSON('my_templates', TEMPLATES); }
+function saveSettings() { return saveJSON('my_cal_settings_v1', SETTINGS); }
+function saveNotifLog() { return saveJSON('my_cal_notiflog', NOTIFLOG); }
+function saveTodos() { return saveJSON('my_todos_v1', TODOS); }
+function saveBudget() { return saveJSON('my_budget_v1', BUDGET); }
+
+/* ============ ntfy 推播 ============ */
+function ntfyUrl(topic){
+  if(/^https?:\/\//i.test(topic)) return topic;
+  return 'https://ntfy.sh/'+encodeURIComponent(topic);
+}
+async function sendNtfy(topic, message, delaySeconds){
+  if(!topic) return false;
+  const headers = {'Content-Type':'text/plain; charset=utf-8'};
+  if(delaySeconds && delaySeconds > 0) headers['Delay'] = Math.ceil(delaySeconds)+'s';
+  try{
+    const res = await fetch(ntfyUrl(topic), { method:'POST', headers, body: message });
+    return res.ok;
+  }catch(e){ console.error('ntfy fail', e); return false; }
+}
+
+const THREE_DAYS_MS = 3*24*3600*1000;
+
+function planNotifyForDate(dateKey){
+  if(!SETTINGS.notifyEnabled || !SETTINGS.ntfyTopic) return null;
+  const items = (EVENTS[dateKey]||[]).filter(e => !e.span || e.span === 'start');
+  if(!items.length) return null;
+  const [y,m,d] = dateKey.split('-').map(Number);
+  const notifyDate = new Date(y, m-1, d);
+  notifyDate.setDate(notifyDate.getDate()-1);
+  notifyDate.setHours(SETTINGS.hour, SETTINGS.minute, 0, 0);
+  const delayMs = notifyDate - new Date();
+  if(delayMs < 10000 || delayMs > THREE_DAYS_MS) return null;
+  const content = items.map(e=>e.text).join('、');
+  const key = 'sched:'+dateKey;
+  const prev = NOTIFLOG[key];
+  if(prev && prev.content === content) return null;
+  return { key, content, msg:`明天行程：${content}`, delaySeconds: Math.floor(delayMs/1000) };
+}
+
+async function syncNotifications(){
+  if(!SETTINGS.notifyEnabled || !SETTINGS.ntfyTopic) return;
+  const base = new Date();
+  let dirty = false;
+  for(let i=0;i<=4;i++){
+    const dt = new Date(base); dt.setDate(dt.getDate()+i);
+    const key = dateKeyOf(dt.getFullYear(), dt.getMonth()+1, dt.getDate());
+    const plan = planNotifyForDate(key);
+    if(plan){
+      const ok = await sendNtfy(SETTINGS.ntfyTopic, plan.msg, plan.delaySeconds);
+      if(ok){ NOTIFLOG[plan.key] = { content: plan.content, sentAt: Date.now() }; dirty = true; }
+    }
+  }
+  if(dirty) saveNotifLog();
+}
+
+/* ============ 底部選單（可長按自訂圖示） ============ */
+let currentTab = 0;
+function renderBottomNav() {
+  const container = document.getElementById('bottomNav');
+  container.innerHTML = '';
+
+  NAV_ITEMS.forEach((item, index) => {
+    const btn = document.createElement('button');
+    btn.className = 'nav-btn' + (index === currentTab ? ' active' : '');
+
+    let iconContent = item.img ? `<img src="${item.img}" alt="${item.title}">` : item.icon;
+    btn.innerHTML = `<span class="nav-icon">${iconContent}</span><span>${item.title}</span>`;
+
+    let pressTimer = null;
+    let longPressed = false;
+    const startPress = () => {
+      longPressed = false;
+      pressTimer = setTimeout(() => { longPressed = true; openNavEditSheet(index); }, 700);
+    };
+    const cancelPress = () => { if (pressTimer) clearTimeout(pressTimer); };
+
+    btn.addEventListener('touchstart', startPress, { passive: true });
+    btn.addEventListener('touchend', cancelPress);
+    btn.addEventListener('mousedown', startPress);
+    btn.addEventListener('mouseup', cancelPress);
+    btn.addEventListener('mouseleave', cancelPress);
+
+    btn.addEventListener('click', () => {
+      if (longPressed) return;
+      if (index === 4) {
+        openAppearanceSheet();
+      } else if (index === 0 || index === 1 || index === 3) {
+        switchTab(index);
+      } else {
+        showToast(`「${item.title}」功能開發中，敬請期待`);
+      }
+    });
+
+    container.appendChild(btn);
+  });
+}
+
+function switchTab(index){
+  currentTab = index;
+  document.getElementById('calendarView').classList.toggle('hidden', index !== 0);
+  document.getElementById('todoView').classList.toggle('hidden', index !== 1);
+  document.getElementById('budgetView').classList.toggle('hidden', index !== 3);
+  renderBottomNav();
+  if(index === 1) renderTodos();
+  if(index === 3) renderBudget();
+}
+
+function openNavEditSheet(index) {
+  editingNavIndex = index;
+  const item = NAV_ITEMS[index];
+  document.getElementById('editNavTitle').value = item.title;
+  document.getElementById('editNavUrlInput').value = item.img || '';
+  document.getElementById('editNavFileInput').value = '';
+  document.getElementById('navEditSheet').classList.remove('hidden');
+}
+
+document.getElementById('saveNavEditBtn').addEventListener('click', () => {
+  if (editingNavIndex === null) return;
+  const newTitle = document.getElementById('editNavTitle').value.trim();
+  const fileInput = document.getElementById('editNavFileInput');
+  const urlInput = document.getElementById('editNavUrlInput').value.trim();
+
+  if (newTitle) NAV_ITEMS[editingNavIndex].title = newTitle;
+
+  const finish = () => {
+    saveNavItems();
+    renderBottomNav();
+    closeSheet('navEditSheet');
+    showToast('底欄按鈕已更新！');
+  };
+
+  if (fileInput.files && fileInput.files[0]) {
+    const reader = new FileReader();
+    reader.onload = (e) => { NAV_ITEMS[editingNavIndex].img = e.target.result; finish(); };
+    reader.readAsDataURL(fileInput.files[0]);
+  } else if (urlInput) {
+    NAV_ITEMS[editingNavIndex].img = urlInput;
+    finish();
+  } else {
+    finish();
+  }
+});
+
+document.getElementById('resetNavBtn').addEventListener('click', () => {
+  if (editingNavIndex !== null) {
+    NAV_ITEMS[editingNavIndex].img = null;
+    saveNavItems();
+    renderBottomNav();
+    closeSheet('navEditSheet');
+    showToast('已重設為預設圖示');
+  }
+});
+
+/* ============ 快速範本 ============ */
+function renderTemplateMenu() {
+  const menuContainer = document.getElementById('templateMenuContainer');
+  const chipContainer = document.getElementById('templateChips');
+  const manageList = document.getElementById('templateManageList');
+  menuContainer.innerHTML = '';
+  chipContainer.innerHTML = '';
+  if(manageList) manageList.innerHTML = '';
+
+  TEMPLATES.forEach((tpl, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'menu-item';
+    btn.innerHTML = `<span>📌</span><span>${tpl}</span>`;
+    btn.onclick = () => useTemplate(tpl);
+    menuContainer.appendChild(btn);
+
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'template-chip';
+    chip.textContent = tpl;
+    chip.onclick = () => useTemplate(tpl);
+    chipContainer.appendChild(chip);
+
+    if(manageList){
+      const row = document.createElement('div');
+      row.className = 'existing-item';
+      row.innerHTML = `<span class="txt">${tpl}</span><button aria-label="刪除範本">✕</button>`;
+      row.querySelector('button').addEventListener('click', ()=>{
+        TEMPLATES.splice(idx,1);
+        saveTemplates();
+        renderTemplateMenu();
+        showToast('已刪除範本');
+      });
+      manageList.appendChild(row);
+    }
+  });
+  if(manageList && !TEMPLATES.length){
+    manageList.innerHTML = '<div class="empty-hint">目前沒有任何範本</div>';
+  }
+}
+
+document.getElementById('addTemplateBtn').addEventListener('click', () => {
+  const val = document.getElementById('newTemplateInput').value.trim();
+  if (val) {
+    TEMPLATES.push(val);
+    saveTemplates();
+    renderTemplateMenu();
+    document.getElementById('newTemplateInput').value = '';
+    showToast('已新增範本！');
+  }
+});
+
+/* ============ 月曆渲染 ============ */
+function renderGrid() {
+  document.getElementById('monthYearLabel').textContent = `${viewYear}年 ${viewMonth}月`;
+  const grid = document.getElementById('calendarGrid');
+  grid.innerHTML = '';
+
+  const firstDow = new Date(viewYear, viewMonth - 1, 1).getDay();
+  const daysInMonth = new Date(viewYear, viewMonth, 0).getDate();
+  const prevMonthDays = new Date(viewYear, viewMonth - 1, 0).getDate();
+
+  const cells = [];
+  for (let i = firstDow - 1; i >= 0; i--) {
+    cells.push({ d: prevMonthDays - i, m: viewMonth === 1 ? 12 : viewMonth - 1, y: viewMonth === 1 ? viewYear - 1 : viewYear, isCurr: false });
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    cells.push({ d, m: viewMonth, y: viewYear, isCurr: true });
+  }
+  while (cells.length < 42) {
+    const nd = cells.length - (firstDow + daysInMonth) + 1;
+    cells.push({ d: nd, m: viewMonth === 12 ? 1 : viewMonth + 1, y: viewMonth === 12 ? viewYear + 1 : viewYear, isCurr: false });
+  }
+
+  cells.forEach(c => {
+    const key = dateKeyOf(c.y, c.m, c.d);
+    const cell = document.createElement('div');
+    cell.className = 'day-cell' + (c.isCurr ? '' : ' other-month');
+
+    const dow = new Date(c.y, c.m - 1, c.d).getDay();
+    if (dow === 0) cell.classList.add('sun');
+    if (dow === 6) cell.classList.add('sat');
+
+    if (c.y===todayObj.getFullYear() && c.m===todayObj.getMonth()+1 && c.d===todayObj.getDate()) {
+      cell.classList.add('is-today');
+    }
+    if (key === selectedDateKey) {
+      cell.classList.add('selected-ring');
+    }
+
+    cell.innerHTML = `
+      <div class="day-number">${c.d}</div>
+      <div class="events-wrapper" id="evt-${key}"></div>
+    `;
+
+    cell.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectedDateKey = key;
+      renderGrid();
+      toggleActionMenu(true);
+    });
+
+    grid.appendChild(cell);
+  });
+
+  renderEvents();
+}
+
+function renderEvents() {
+  Object.keys(EVENTS).forEach(key => {
+    const container = document.getElementById(`evt-${key}`);
+    if (!container) return;
+    container.innerHTML = '';
+
+    (EVENTS[key]||[]).forEach(evt => {
+      const tag = document.createElement('div');
+      tag.className = 'event-tag';
+      if (evt.span) tag.classList.add(`span-${evt.span}`);
+
+      const col = PALETTE[evt.col % PALETTE.length];
+      tag.style.backgroundColor = col.bg;
+      tag.style.color = col.text;
+      tag.textContent = evt.text;
+      container.appendChild(tag);
+    });
+  });
+
+  // 有到期日的待辦事項，也直接顯示在月曆對應日期上，讓月曆本身就是總覽
+  TODOS.forEach(t => {
+    if (!t.dueDate) return;
+    const container = document.getElementById(`evt-${t.dueDate}`);
+    if (!container) return;
+    const tag = document.createElement('div');
+    tag.className = 'event-tag todo-marker' + (t.done ? ' done' : '');
+    tag.textContent = (t.done ? '✓ ' : '☐ ') + t.text;
+    container.appendChild(tag);
+  });
+}
+
+/* ============ 月份切換（按鈕 + 滑動手勢） ============ */
+function prevMonth(){ viewMonth--; if(viewMonth<1){viewMonth=12; viewYear--;} renderGrid(); }
+function nextMonth(){ viewMonth++; if(viewMonth>12){viewMonth=1; viewYear++;} renderGrid(); }
+document.getElementById('prevMonthBtn').addEventListener('click', prevMonth);
+document.getElementById('nextMonthBtn').addEventListener('click', nextMonth);
+
+(function attachSwipe(){
+  const grid = document.getElementById('calendarGrid');
+  let sx=0, sy=0, tracking=false;
+  grid.addEventListener('touchstart', e=>{
+    const t=e.touches[0]; sx=t.clientX; sy=t.clientY; tracking=true;
+  }, {passive:true});
+  grid.addEventListener('touchend', e=>{
+    if(!tracking) return;
+    tracking=false;
+    const t=e.changedTouches[0];
+    const dx=t.clientX-sx, dy=t.clientY-sy;
+    if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5){
+      if(dx>0) prevMonth(); else nextMonth();
+    }
+  }, {passive:true});
+})();
+
+/* ============ 選單／Sheet 開關 ============ */
+function toggleActionMenu(show) {
+  const menu = document.getElementById('actionMenu');
+  if (show) menu.classList.remove('hidden');
+  else menu.classList.add('hidden');
+}
+function closeSheet(id) {
+  document.getElementById(id).classList.add('hidden');
+}
+
+document.getElementById('openDayDetailBtn').addEventListener('click', () => {
+  toggleActionMenu(false);
+  openDayDetailSheet(selectedDateKey);
+});
+
+function openDayDetailSheet(dateKey){
+  selectedDateKey = dateKey;
+  renderGrid();
+  const [y,m,d] = dateKey.split('-').map(Number);
+  const wd = ['日','一','二','三','四','五','六'][new Date(y,m-1,d).getDay()];
+  document.getElementById('dayDetailTitle').textContent = `${y}年${m}月${d}日（星期${wd}）`;
+  document.getElementById('dayDetailSub').textContent = '點下方範本快速加入，或自己輸入內容';
+  document.getElementById('eventTitleInput').value = '';
+  document.getElementById('eventDaysInput').value = 1;
+  refreshExistingList();
+  document.getElementById('sheetOverlay').classList.remove('hidden');
+}
+
+function refreshExistingList(){
+  const key = selectedDateKey;
+  const list = document.getElementById('existingList');
+  const items = EVENTS[key] || [];
+  list.innerHTML = '';
+  if(!items.length){
+    list.innerHTML = '<div class="empty-hint">這天還沒有任何行程</div>';
+    return;
+  }
+  items.forEach(evt=>{
+    const col = PALETTE[evt.col % PALETTE.length];
+    const row = document.createElement('div');
+    row.className = 'existing-item';
+    const spanLabel = evt.span ? '（連續多天）' : '';
+    row.innerHTML = `<span class="dot" style="background:${col.bg};"></span><span class="txt">${evt.text}${spanLabel}</span><button aria-label="刪除">✕</button>`;
+    row.querySelector('button').addEventListener('click', ()=> deleteEventGroup(evt.gid));
+    list.appendChild(row);
+  });
+}
+
+function deleteEventGroup(gid){
+  Object.keys(EVENTS).forEach(k=>{
+    EVENTS[k] = (EVENTS[k]||[]).filter(e=>e.gid!==gid);
+    if(!EVENTS[k].length) delete EVENTS[k];
+  });
+  saveEvents();
+  refreshExistingList();
+  renderGrid();
+  showToast('已刪除');
+}
+
+function useTemplate(text){
+  // 範本改成「帶入文字讓您補充細節」而不是直接存檔，
+  // 例如點「生日」會把文字填進輸入框，讓您可以改成「媽媽生日」再儲存。
+  toggleActionMenu(false);
+  if(document.getElementById('sheetOverlay').classList.contains('hidden')){
+    openDayDetailSheet(selectedDateKey);
+  }
+  const input = document.getElementById('eventTitleInput');
+  input.value = text;
+  input.focus();
+  input.setSelectionRange(text.length, text.length);
+}
+
+/* ============ 待辦事項 ============ */
+function renderTodos(){
+  const list = document.getElementById('todoList');
+  list.innerHTML = '';
+  if(!TODOS.length){
+    list.innerHTML = '<div class="empty-hint">目前沒有待辦事項，在下面輸入新增一筆吧</div>';
+    return;
+  }
+  const todayStr = dateKeyOf(todayObj.getFullYear(), todayObj.getMonth()+1, todayObj.getDate());
+  const sorted = TODOS.slice().sort((a,b)=>{
+    if(a.done !== b.done) return a.done ? 1 : -1;
+    if(!a.done && !b.done){
+      if(a.dueDate && b.dueDate) return a.dueDate < b.dueDate ? -1 : (a.dueDate > b.dueDate ? 1 : 0);
+      if(a.dueDate && !b.dueDate) return -1;
+      if(!a.dueDate && b.dueDate) return 1;
+      return b.createdAt - a.createdAt;
+    }
+    return b.completedAt - a.completedAt;
+  });
+  sorted.forEach(item=>{
+    const row = document.createElement('div');
+    row.className = 'todo-item' + (item.done ? ' done' : '') + (!item.done && item.dueDate && item.dueDate < todayStr ? ' overdue' : '');
+    row.innerHTML = `
+      <div class="todo-check${item.done?' done':''}">${item.done?'✓':''}</div>
+      <div class="todo-body">
+        <div class="todo-text">${item.text}</div>
+        ${item.dueDate ? `<div class="todo-due">📅 ${item.dueDate}</div>` : ''}
+      </div>
+      <button class="todo-del" aria-label="刪除">✕</button>
+    `;
+    row.querySelector('.todo-check').addEventListener('click', ()=>{
+      item.done = !item.done;
+      item.completedAt = item.done ? Date.now() : 0;
+      saveTodos();
+      renderTodos();
+      renderEvents();
+    });
+    row.querySelector('.todo-del').addEventListener('click', ()=>{
+      TODOS = TODOS.filter(t=>t.id!==item.id);
+      saveTodos();
+      renderTodos();
+      renderEvents();
+      showToast('已刪除');
+    });
+    list.appendChild(row);
+  });
+}
+
+document.getElementById('addTodoBtn').addEventListener('click', ()=>{
+  const textInput = document.getElementById('todoTextInput');
+  const dateInput = document.getElementById('todoDateInput');
+  const text = textInput.value.trim();
+  if(!text){ showToast('請先輸入待辦內容'); return; }
+  TODOS.push({ id: Date.now()+'-'+Math.random().toString(36).slice(2,7), text, done:false, dueDate: dateInput.value||null, createdAt: Date.now(), completedAt:0 });
+  saveTodos();
+  textInput.value=''; dateInput.value='';
+  renderTodos();
+  renderEvents();
+  showToast('已新增待辦');
+});
+document.getElementById('todoTextInput').addEventListener('keydown', (e)=>{
+  if(e.key==='Enter') document.getElementById('addTodoBtn').click();
+});
+
+/* ============ 記帳 ============ */
+function budgetMonthKey(y,m){ return `${y}-${String(m).padStart(2,'0')}`; }
+
+function renderBudgetCategoryChips(){
+  const container = document.getElementById('budgetCategoryChips');
+  const cats = budgetType==='expense' ? EXPENSE_CATS : INCOME_CATS;
+  if(!cats.includes(budgetCategory)) budgetCategory = cats[0];
+  container.innerHTML = '';
+  cats.forEach(cat=>{
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'category-chip' + (cat===budgetCategory ? ' active' : '');
+    chip.textContent = cat;
+    chip.onclick = ()=>{ budgetCategory = cat; renderBudgetCategoryChips(); };
+    container.appendChild(chip);
+  });
+}
+
+document.getElementById('budgetTypeExpenseBtn').addEventListener('click', ()=>{
+  budgetType='expense';
+  document.getElementById('budgetTypeExpenseBtn').classList.add('active');
+  document.getElementById('budgetTypeIncomeBtn').classList.remove('active');
+  renderBudgetCategoryChips();
+});
+document.getElementById('budgetTypeIncomeBtn').addEventListener('click', ()=>{
+  budgetType='income';
+  document.getElementById('budgetTypeIncomeBtn').classList.add('active');
+  document.getElementById('budgetTypeExpenseBtn').classList.remove('active');
+  renderBudgetCategoryChips();
+});
+
+document.getElementById('addBudgetBtn').addEventListener('click', ()=>{
+  budgetType='expense';
+  budgetCategory=EXPENSE_CATS[0];
+  document.getElementById('budgetTypeExpenseBtn').classList.add('active');
+  document.getElementById('budgetTypeIncomeBtn').classList.remove('active');
+  document.getElementById('budgetAmountInput').value='';
+  document.getElementById('budgetNoteInput').value='';
+  document.getElementById('budgetDateInput').value = dateKeyOf(todayObj.getFullYear(),todayObj.getMonth()+1,todayObj.getDate());
+  renderBudgetCategoryChips();
+  document.getElementById('budgetSheet').classList.remove('hidden');
+});
+
+document.getElementById('saveBudgetBtn').addEventListener('click', ()=>{
+  const amount = parseFloat(document.getElementById('budgetAmountInput').value);
+  if(!amount || amount<=0){ showToast('請輸入正確的金額'); return; }
+  const date = document.getElementById('budgetDateInput').value || dateKeyOf(todayObj.getFullYear(),todayObj.getMonth()+1,todayObj.getDate());
+  const note = document.getElementById('budgetNoteInput').value.trim();
+  BUDGET.push({
+    id: Date.now()+'-'+Math.random().toString(36).slice(2,7),
+    type: budgetType, amount, category: budgetCategory, date, note
+  });
+  saveBudget();
+  closeSheet('budgetSheet');
+  renderBudget();
+  showToast('已記錄一筆');
+});
+
+function prevBudgetMonth(){ budgetViewMonth--; if(budgetViewMonth<1){budgetViewMonth=12; budgetViewYear--;} renderBudget(); }
+function nextBudgetMonth(){ budgetViewMonth++; if(budgetViewMonth>12){budgetViewMonth=1; budgetViewYear++;} renderBudget(); }
+document.getElementById('budgetPrevBtn').addEventListener('click', prevBudgetMonth);
+document.getElementById('budgetNextBtn').addEventListener('click', nextBudgetMonth);
+
+function categoryColor(cat, list){
+  const idx = list.indexOf(cat);
+  return PALETTE[(idx<0?0:idx) % PALETTE.length];
+}
+
+function renderBudget(){
+  document.getElementById('budgetMonthLabel').textContent = `${budgetViewYear}年${budgetViewMonth}月`;
+  const mk = budgetMonthKey(budgetViewYear, budgetViewMonth);
+  const items = BUDGET.filter(b=>b.date && b.date.startsWith(mk)).sort((a,b)=> a.date < b.date ? 1 : (a.date > b.date ? -1 : 0));
+
+  let expenseTotal=0, incomeTotal=0;
+  items.forEach(b=>{ if(b.type==='expense') expenseTotal+=b.amount; else incomeTotal+=b.amount; });
+  document.getElementById('budgetExpenseTotal').textContent = `$${expenseTotal.toLocaleString()}`;
+  document.getElementById('budgetIncomeTotal').textContent = `$${incomeTotal.toLocaleString()}`;
+  document.getElementById('budgetNetTotal').textContent = `$${(incomeTotal-expenseTotal).toLocaleString()}`;
+
+  const list = document.getElementById('budgetList');
+  list.innerHTML = '';
+  if(!items.length){
+    list.innerHTML = '<div class="empty-hint">這個月還沒有任何記錄</div>';
+    return;
+  }
+  items.forEach(b=>{
+    const cats = b.type==='expense' ? EXPENSE_CATS : INCOME_CATS;
+    const col = categoryColor(b.category, cats);
+    const row = document.createElement('div');
+    row.className = 'budget-item';
+    row.innerHTML = `
+      <span class="dot" style="background:${col.bg};"></span>
+      <div class="info">
+        <div class="cat">${b.category}</div>
+        <div class="note">${b.date}${b.note ? '　'+b.note : ''}</div>
+      </div>
+      <span class="amt ${b.type}">${b.type==='expense'?'-':'+'}$${b.amount.toLocaleString()}</span>
+      <button class="del" aria-label="刪除">✕</button>
+    `;
+    row.querySelector('.del').addEventListener('click', ()=>{
+      BUDGET = BUDGET.filter(x=>x.id!==b.id);
+      saveBudget();
+      renderBudget();
+      showToast('已刪除');
+    });
+    list.appendChild(row);
+  });
+}
+
+document.getElementById('saveEventBtn').addEventListener('click', () => {
+  const title = document.getElementById('eventTitleInput').value.trim();
+  const days = Math.max(1, Math.min(14, parseInt(document.getElementById('eventDaysInput').value)||1));
+  if (!title) { showToast('請先輸入行程名稱'); return; }
+
+  const [y, m, d] = selectedDateKey.split('-').map(Number);
+  const gid = Date.now()+'-'+Math.random().toString(36).slice(2,7);
+  for (let i = 0; i < days; i++) {
+    const dt = new Date(y, m - 1, d + i);
+    const key = dateKeyOf(dt.getFullYear(), dt.getMonth()+1, dt.getDate());
+    if (!EVENTS[key]) EVENTS[key] = [];
+    let span = null;
+    if (days > 1) span = i===0 ? 'start' : (i===days-1 ? 'end' : 'mid');
+    EVENTS[key].push({ gid, text: title, col: activeColorIdx, span });
+  }
+  activeColorIdx = (activeColorIdx+1) % PALETTE.length;
+
+  saveEvents();
+  renderGrid();
+  refreshExistingList();
+  document.getElementById('eventTitleInput').value = '';
+  document.getElementById('eventDaysInput').value = 1;
+  syncNotifications();
+  showToast('已新增行程！');
+});
+
+/* 色盤初始化 */
+function renderPalette(){
+  const p = document.getElementById('palettePicker');
+  p.innerHTML = '';
+  PALETTE.forEach((col, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'color-chip' + (i === activeColorIdx ? ' active' : '');
+    chip.style.backgroundColor = col.bg;
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.color-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      activeColorIdx = i;
+    });
+    p.appendChild(chip);
+  });
+}
+
+/* ============ Toast ============ */
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._timer);
+  showToast._timer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* ============ 後台：ntfy 設定 ============ */
+function applyNotifySwitch(){
+  document.getElementById('notifySwitch').classList.toggle('on', !!SETTINGS.notifyEnabled);
+}
+document.getElementById('notifySwitch').addEventListener('click', () => {
+  SETTINGS.notifyEnabled = !SETTINGS.notifyEnabled;
+  applyNotifySwitch();
+  saveSettings();
+  if(SETTINGS.notifyEnabled) syncNotifications();
+});
+document.getElementById('ntfyTopicInput').addEventListener('change', () => {
+  SETTINGS.ntfyTopic = document.getElementById('ntfyTopicInput').value.trim();
+  saveSettings();
+  showToast('主題名稱已儲存');
+});
+document.getElementById('notifyTimeInput').addEventListener('change', () => {
+  const [hh,mm] = document.getElementById('notifyTimeInput').value.split(':').map(Number);
+  SETTINGS.hour = hh||8; SETTINGS.minute = mm||0;
+  saveSettings();
+  showToast('提醒時間已儲存');
+});
+document.getElementById('testNotifyBtn').addEventListener('click', async () => {
+  const topic = document.getElementById('ntfyTopicInput').value.trim();
+  if(!topic){ showToast('請先輸入 ntfy 主題名稱'); return; }
+  const ok = await sendNtfy(topic, '這是一則測試通知，日曆設定成功！');
+  showToast(ok ? '測試通知已送出' : '送出失敗，請檢查網路或主題名稱');
+});
+
+/* ============ 後台：備份 / 還原 / 清空 ============ */
+function backupFileName(){
+  const d = new Date();
+  return `calendar-backup-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`;
+}
+document.getElementById('exportDataBtn').addEventListener('click', () => {
+  const payload = { exportedAt: new Date().toISOString(), events: EVENTS, nav: NAV_ITEMS, templates: TEMPLATES, settings: SETTINGS, todos: TODOS, budget: BUDGET };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = backupFileName();
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 400);
+  showToast('備份檔案已下載');
+});
+document.getElementById('importDataBtn').addEventListener('click', () => {
+  document.getElementById('importFile').click();
+});
+document.getElementById('importFile').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      const data = JSON.parse(evt.target.result);
+      if (data.events) EVENTS = data.events;
+      if (data.nav) NAV_ITEMS = data.nav;
+      if (data.templates) TEMPLATES = data.templates;
+      if (data.settings) SETTINGS = { ...SETTINGS, ...data.settings };
+      if (data.todos) TODOS = data.todos;
+      if (data.budget) BUDGET = data.budget;
+      saveEvents(); saveNavItems(); saveTemplates(); saveSettings(); saveTodos(); saveBudget();
+      renderBottomNav(); renderTemplateMenu(); renderGrid(); renderTodos(); renderBudget();
+      applyTheme(); applyNotifySwitch();
+      document.getElementById('ntfyTopicInput').value = SETTINGS.ntfyTopic||'';
+      document.getElementById('notifyTimeInput').value = `${String(SETTINGS.hour).padStart(2,'0')}:${String(SETTINGS.minute).padStart(2,'0')}`;
+      closeSheet('adminSheet');
+      showToast('備份還原成功！');
+    } catch(err) { showToast('檔案格式錯誤'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+document.getElementById('clearAllBtn').addEventListener('click', () => {
+  if (confirm('確定要清空所有行程資料嗎？此動作無法復原。')) {
+    EVENTS = {};
+    saveEvents();
+    renderGrid();
+    refreshExistingList();
+    closeSheet('adminSheet');
+    showToast('行程已清空');
+  }
+});
+
+/* ============ 深色模式（含記憶） ============ */
+function applyTheme(){
+  document.documentElement.setAttribute('data-theme', SETTINGS.theme === 'dark' ? 'dark' : 'light');
+  document.getElementById('themeBtn').textContent = SETTINGS.theme === 'dark' ? '☀️' : '🌙';
+  const lightOpt = document.getElementById('themeOptionLight');
+  const darkOpt = document.getElementById('themeOptionDark');
+  if(lightOpt && darkOpt){
+    lightOpt.classList.toggle('active', SETTINGS.theme !== 'dark');
+    darkOpt.classList.toggle('active', SETTINGS.theme === 'dark');
+  }
+}
+document.getElementById('themeBtn').addEventListener('click', () => {
+  SETTINGS.theme = SETTINGS.theme === 'dark' ? 'light' : 'dark';
+  applyTheme();
+  saveSettings();
+});
+
+function openAppearanceSheet(){
+  applyTheme();
+  document.getElementById('appearanceSheet').classList.remove('hidden');
+}
+document.querySelectorAll('.theme-option').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    SETTINGS.theme = btn.dataset.themeChoice;
+    applyTheme();
+    saveSettings();
+    showToast(SETTINGS.theme === 'dark' ? '已切換為深色模式' : '已切換為淺色模式');
+    closeSheet('appearanceSheet');
+  });
+});
+
+/* ============ 初始化 ============ */
+document.addEventListener('DOMContentLoaded', () => {
+  applyTheme();
+  applyNotifySwitch();
+  document.getElementById('ntfyTopicInput').value = SETTINGS.ntfyTopic || '';
+  document.getElementById('notifyTimeInput').value = `${String(SETTINGS.hour).padStart(2,'0')}:${String(SETTINGS.minute).padStart(2,'0')}`;
+
+  renderBottomNav();
+  renderTemplateMenu();
+  renderPalette();
+  renderGrid();
+  syncNotifications();
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#actionMenu') && !e.target.closest('.day-cell')) toggleActionMenu(false);
+  });
+
+  document.getElementById('todayBtn').addEventListener('click', () => {
+    const now = new Date();
+    viewYear = now.getFullYear();
+    viewMonth = now.getMonth() + 1;
+    selectedDateKey = dateKeyOf(viewYear, viewMonth, now.getDate());
+    renderGrid();
+  });
+
+  document.getElementById('adminBtn').addEventListener('click', () => {
+    document.getElementById('adminSheet').classList.remove('hidden');
+  });
+});
+</script>
+</body>
+</html>

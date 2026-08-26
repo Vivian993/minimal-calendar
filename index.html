@@ -286,10 +286,9 @@
     box-sizing: border-box;
     align-self: stretch;
   }
-  .event-tag.span-start { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+  .event-tag.span-start { border-top-right-radius: 0; border-bottom-right-radius: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .event-tag.span-mid { border-radius: 0; }
   .event-tag.span-end { border-top-left-radius: 0; border-bottom-left-radius: 0; }
-  .event-tag.text-split { white-space: nowrap; overflow: hidden; text-overflow: clip; }
   .event-tag.todo-marker{
     background: transparent;
     border: 1.4px dashed var(--text-secondary);
@@ -2018,24 +2017,7 @@ function attachDayPress(cell, key){
   cell.addEventListener('mouseleave', clearTimer);
 }
 
-function buildSpanGroups(){
-  // 找出每個跨日行程 (gid) 依日期排序後的順序，用來判斷「這一天是第幾天／總共幾天」
-  const groups = {};
-  Object.keys(EVENTS).forEach(key=>{
-    (EVENTS[key]||[]).forEach(evt=>{
-      if (!evt.span) return;
-      if (!groups[evt.gid]) groups[evt.gid] = [];
-      groups[evt.gid].push(key);
-    });
-  });
-  Object.values(groups).forEach(arr => arr.sort());
-  return groups;
-}
-
 function renderEvents() {
-  const spanGroups = buildSpanGroups();
-  const LONG_TEXT_THRESHOLD = 4; // 超過這個字數，才需要平均分配到後面的格子，短文字維持顯示在第一天就好
-
   Object.keys(EVENTS).forEach(key => {
     const container = document.getElementById(`evt-${key}`);
     if (!container) return;
@@ -2051,25 +2033,9 @@ function renderEvents() {
       const col = PALETTE[evt.col % PALETTE.length];
       tag.style.backgroundColor = col.bg;
       tag.style.color = col.text;
-
-      if (evt.span) {
-        const days = spanGroups[evt.gid] || [key];
-        const totalDays = days.length;
-        if (totalDays > 1 && evt.text.length > LONG_TEXT_THRESHOLD) {
-          // 文字比較長：平均切開，分配到這個行程佔用的每一天格子裡
-          // 不換行、固定單行高度，這樣每天的色塊大小才會一致，不會前面大後面小
-          tag.classList.add('text-split');
-          const idx = days.indexOf(key);
-          const perDay = Math.ceil(evt.text.length / totalDays);
-          const from = idx * perDay;
-          tag.textContent = evt.text.slice(from, from + perDay);
-        } else {
-          // 文字不長：維持原本做法，只在第一天顯示，其他天用同色塊延續就好
-          tag.textContent = (evt.span === 'mid' || evt.span === 'end') ? '' : evt.text;
-        }
-      } else {
-        tag.textContent = evt.text;
-      }
+      // 跨日行程只在第一天顯示文字（單行、太長用...省略），其他天用同色塊延續，
+      // 這樣每天的色塊高度自然一致，也不會把詞語硬拆成看不懂的片段
+      tag.textContent = (evt.span === 'mid' || evt.span === 'end') ? '' : evt.text;
       container.appendChild(tag);
     });
 

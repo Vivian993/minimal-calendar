@@ -212,10 +212,12 @@
     flex: 1;
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    grid-template-rows: repeat(6, 1fr);
+    grid-template-rows: repeat(6, minmax(0, 1fr));
     background-color: var(--app-bg);
     position: relative;
     user-select: none;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .day-cell {
@@ -226,6 +228,7 @@
     flex-direction: column;
     position: relative;
     overflow: hidden;
+    min-height: 0;
     cursor: pointer;
   }
   .day-cell:nth-child(7n) { border-right: none; }
@@ -252,7 +255,7 @@
   .day-cell.selected-ring { box-shadow: inset 0 0 0 2px var(--accent); z-index: 2; }
   .day-cell.pressing { box-shadow: inset 0 0 0 2px var(--accent-green); z-index: 2; }
   .day-cell.holiday { background: var(--holiday-bg); }
-  .day-cell.joins-right { border-right-color: transparent; }
+
   .holiday-label{
     font-size: 0.82rem;
     font-weight: 800;
@@ -271,25 +274,47 @@
     gap: 3px;
     margin-top: 2px;
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
   }
 
   .event-tag {
-    font-size: 0.82rem;
+    font-size: 0.76rem;
     font-weight: 600;
-    padding: 3px 5px;
+    padding: 3px 3px;
     border-radius: 5px;
-    white-space: normal;
-    overflow-wrap: break-word;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     line-height: 1.32;
-    min-height: calc(0.82rem * 1.32 + 6px);
+    min-height: calc(0.76rem * 1.32 + 6px);
     box-sizing: border-box;
     width: 100%;
     align-self: stretch;
   }
-  .event-tag.span-start { border-top-right-radius: 0; border-bottom-right-radius: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .event-tag.span-mid { border-radius: 0; white-space: nowrap; overflow: hidden; }
-  .event-tag.span-end { border-top-left-radius: 0; border-bottom-left-radius: 0; white-space: nowrap; overflow: hidden; }
+  .event-tag.span-spacer { visibility: hidden; pointer-events: none; }
+  .span-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .span-bar {
+    position: absolute;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1.32;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: auto;
+    cursor: pointer;
+  }
   .event-tag.todo-marker{
     background: transparent;
     border: 1.4px dashed var(--text-secondary);
@@ -1925,10 +1950,13 @@ document.getElementById('addTemplateBtn').addEventListener('click', () => {
 });
 
 /* ============ 月曆渲染 ============ */
+let GRID_CELLS = []; // [{key, row, col, el}] for the currently rendered month, used to place multi-day span bars
+
 function renderGrid() {
   document.getElementById('monthYearLabel').textContent = `${viewYear}年 ${viewMonth}月`;
   const grid = document.getElementById('calendarGrid');
   grid.innerHTML = '';
+  GRID_CELLS = [];
 
   const firstDow = new Date(viewYear, viewMonth - 1, 1).getDay();
   const daysInMonth = new Date(viewYear, viewMonth, 0).getDate();
@@ -1946,7 +1974,7 @@ function renderGrid() {
     cells.push({ d: nd, m: viewMonth === 12 ? 1 : viewMonth + 1, y: viewMonth === 12 ? viewYear + 1 : viewYear, isCurr: false });
   }
 
-  cells.forEach(c => {
+  cells.forEach((c, i) => {
     const key = dateKeyOf(c.y, c.m, c.d);
     const cell = document.createElement('div');
     cell.className = 'day-cell' + (c.isCurr ? '' : ' other-month');
@@ -1973,7 +2001,13 @@ function renderGrid() {
     attachDayPress(cell, key);
 
     grid.appendChild(cell);
+    GRID_CELLS.push({ key, row: Math.floor(i/7), col: i%7, el: cell });
   });
+
+  const overlay = document.createElement('div');
+  overlay.className = 'span-overlay';
+  overlay.id = 'spanOverlay';
+  grid.appendChild(overlay);
 
   renderEvents();
 }
@@ -2016,30 +2050,73 @@ function attachDayPress(cell, key){
   cell.addEventListener('mouseleave', clearTimer);
 }
 
+function buildSpanGroups(){
+  // 找出每個跨日行程 (gid) 依日期排序後的順序
+  const groups = {};
+  Object.keys(EVENTS).forEach(key=>{
+    (EVENTS[key]||[]).forEach(evt=>{
+      if (!evt.span) return;
+      if (!groups[evt.gid]) groups[evt.gid] = [];
+      groups[evt.gid].push(key);
+    });
+  });
+  Object.values(groups).forEach(arr => arr.sort());
+  return groups;
+}
+
 function renderEvents() {
+  const spanGroups = buildSpanGroups();
+  const posByKey = {};
+  GRID_CELLS.forEach(c => { posByKey[c.key] = c; });
+
+  // 把每個跨日行程切成一段一段「同一列」的連續區間（換行/跨週就要分成新的一段）
+  const runs = []; // {gid, col0, colInfo, evt, row, startCol, endCol}
+  const rowsWithSpan = new Set();
+  Object.entries(spanGroups).forEach(([gid, days]) => {
+    // 找到這個 gid 對應的其中一筆事件資料（文字/顏色都一樣，抓第一筆即可）
+    let evtRef = null;
+    for (const k of days) { const found=(EVENTS[k]||[]).find(e=>e.gid===gid); if (found) { evtRef = found; break; } }
+    if (!evtRef) return;
+
+    let curRun = null;
+    days.forEach(key => {
+      const pos = posByKey[key];
+      if (!pos) return; // 這個日期不在目前顯示的月份範圍內
+      if (curRun && pos.row === curRun.row && pos.col === curRun.endCol + 1) {
+        curRun.endCol = pos.col;
+        curRun.endKey = key;
+      } else {
+        if (curRun) runs.push(curRun);
+        curRun = { gid, row: pos.row, startCol: pos.col, endCol: pos.col, startKey: key, endKey: key, evt: evtRef };
+      }
+      rowsWithSpan.add(pos.row);
+    });
+    if (curRun) runs.push(curRun);
+  });
+
+  // 每一天格子：先放跨日行程需要的空白佔位（讓該列的其他事項都往下對齊、不被色條蓋住），再放非跨日的一般行程
   Object.keys(EVENTS).forEach(key => {
     const container = document.getElementById(`evt-${key}`);
     if (!container) return;
     container.innerHTML = '';
 
-    let joinsRight = false;
+    const pos = posByKey[key];
+    if (pos && rowsWithSpan.has(pos.row)) {
+      const spacer = document.createElement('div');
+      spacer.className = 'event-tag span-spacer';
+      container.appendChild(spacer);
+    }
+
     (EVENTS[key]||[]).forEach(evt => {
+      if (evt.span) return; // 跨日行程改用覆蓋條顯示，這裡跳過
       const tag = document.createElement('div');
       tag.className = 'event-tag';
-      if (evt.span) tag.classList.add(`span-${evt.span}`);
-      if (evt.span === 'start' || evt.span === 'mid') joinsRight = true;
-
       const col = PALETTE[evt.col % PALETTE.length];
       tag.style.backgroundColor = col.bg;
       tag.style.color = col.text;
-      // 跨日行程只在第一天顯示文字（單行，太長用...省略，不逐字硬拆），
-      // 其他天用同色塊延續，天數再長也不會拆出看不懂的碎字
-      tag.textContent = (evt.span === 'mid' || evt.span === 'end') ? '' : evt.text;
+      tag.textContent = evt.text;
       container.appendChild(tag);
     });
-
-    const cellEl = container.parentElement;
-    if (cellEl) cellEl.classList.toggle('joins-right', joinsRight);
   });
 
   // 有到期日的待辦事項，也直接顯示在月曆對應日期上，讓月曆本身就是總覽
@@ -2052,6 +2129,37 @@ function renderEvents() {
     tag.textContent = (t.done ? '✓ ' : '☐ ') + t.text;
     container.appendChild(tag);
   });
+
+  // 畫跨日行程的覆蓋色條：用實際量到的像素位置，寬度是它佔用的所有天數加總，
+  // 完整文字一次顯示，不用再逐字硬拆、也不會有格子間的斷層
+  const overlay = document.getElementById('spanOverlay');
+  if (overlay) {
+    overlay.innerHTML = '';
+    const gridEl = document.getElementById('calendarGrid');
+    const gridRect = gridEl.getBoundingClientRect();
+    runs.forEach(run => {
+      const startPos = posByKey[run.startKey];
+      const endPos = posByKey[run.endKey];
+      const spacerStart = document.querySelector(`#evt-${run.startKey} .span-spacer`);
+      if (!startPos || !endPos || !spacerStart) return;
+      const startRect = startPos.el.getBoundingClientRect();
+      const endRect = endPos.el.getBoundingClientRect();
+      const spacerRect = spacerStart.getBoundingClientRect();
+
+      const bar = document.createElement('div');
+      bar.className = 'span-bar';
+      const col = PALETTE[run.evt.col % PALETTE.length];
+      bar.style.backgroundColor = col.bg;
+      bar.style.color = col.text;
+      bar.style.left = (startRect.left - gridRect.left) + 'px';
+      bar.style.width = (endRect.right - startRect.left) + 'px';
+      bar.style.top = (spacerRect.top - gridRect.top) + 'px';
+      bar.style.height = spacerRect.height + 'px';
+      bar.textContent = run.evt.text;
+      bar.addEventListener('click', () => openDayDetailSheet(run.startKey));
+      overlay.appendChild(bar);
+    });
+  }
 }
 
 /* ============ 月份切換（按鈕 + 滑動手勢） ============ */

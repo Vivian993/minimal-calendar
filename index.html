@@ -221,7 +221,7 @@
   .day-cell {
     border-right: 1px solid var(--border-grid);
     border-bottom: 1px solid var(--border-grid);
-    padding: 1px;
+    padding: 1px 0;
     display: flex;
     flex-direction: column;
     position: relative;
@@ -286,9 +286,9 @@
     box-sizing: border-box;
     align-self: stretch;
   }
-  .event-tag.span-start { border-top-right-radius: 0; border-bottom-right-radius: 0; margin-right: -3px; }
-  .event-tag.span-mid { border-radius: 0; margin-left: -3px; margin-right: -3px; }
-  .event-tag.span-end { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -3px; }
+  .event-tag.span-start { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+  .event-tag.span-mid { border-radius: 0; }
+  .event-tag.span-end { border-top-left-radius: 0; border-bottom-left-radius: 0; }
   .event-tag.text-split { white-space: nowrap; overflow: hidden; text-overflow: clip; }
   .event-tag.todo-marker{
     background: transparent;
@@ -530,6 +530,12 @@
     background: var(--macaron-mint); border-color: var(--macaron-mint);
     color: var(--macaron-mint-text);
   }
+  .notify-default-hint{
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin: -2px 2px 8px;
+  }
+  .notify-default-hint.hidden{ display:none; }
 
   .template-row{
     display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 4px;
@@ -926,6 +932,7 @@
         <button type="button" class="notify-toggle-btn" data-offset="before">前一天</button>
         <button type="button" class="notify-toggle-btn" data-offset="same">當天</button>
       </div>
+      <div class="notify-default-hint" id="notifyDefaultHint"></div>
       <select class="input-box hidden" id="eventNotifyTimeSelect"></select>
 
       <div class="btn-row">
@@ -1638,6 +1645,21 @@ function dateKeyOf(y,m,d){
   return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 }
 function saveEvents() { return saveJSON('my_cal_events_v4', EVENTS); }
+
+function findGidDateRange(gid){
+  const dates = [];
+  Object.keys(EVENTS).forEach(k=>{
+    if ((EVENTS[k]||[]).some(e=>e.gid===gid)) dates.push(k);
+  });
+  dates.sort();
+  return dates;
+}
+function removeGidEntries(gid){
+  Object.keys(EVENTS).forEach(k=>{
+    EVENTS[k] = (EVENTS[k]||[]).filter(e=>e.gid!==gid);
+    if (EVENTS[k].length === 0) delete EVENTS[k];
+  });
+}
 function saveNavItems() { return saveJSON('my_nav_items', NAV_ITEMS); }
 function saveTemplates() { return saveJSON('my_templates', TEMPLATES); }
 function saveSettings() { return saveJSON('my_cal_settings_v1', SETTINGS); }
@@ -2118,6 +2140,13 @@ function setNotifyOffsetToggle(offset){
     btn.classList.toggle('active', btn.dataset.offset === offset);
   });
   renderNotifyTimeOptions(offset);
+  const hint = document.getElementById('notifyDefaultHint');
+  if (!offset) {
+    hint.textContent = `預設：前一天 ${String(SETTINGS.hour).padStart(2,'0')}:${String(SETTINGS.minute).padStart(2,'0')} 提醒`;
+    hint.classList.remove('hidden');
+  } else {
+    hint.classList.add('hidden');
+  }
 }
 
 document.getElementById('notifyOffsetToggle').addEventListener('click', (e)=>{
@@ -2195,6 +2224,8 @@ function startEditEvent(evt){
   input.focus();
   activeColorIdx = evt.col;
   renderPalette();
+  const range = findGidDateRange(evt.gid);
+  document.getElementById('eventDaysInput').value = Math.max(1, range.length);
   const offset = (evt.notifyHour != null) ? (evt.notifyOffset || 'before') : '';
   setNotifyOffsetToggle(offset);
   if (offset) document.getElementById('eventNotifyTimeSelect').value = `${offset}:${evt.notifyHour}:${evt.notifyMinute||0}`;
@@ -2432,12 +2463,21 @@ document.getElementById('saveEventBtn').addEventListener('click', () => {
   }
 
   if (editingGid) {
-    let found = false;
-    Object.keys(EVENTS).forEach(k=>{
-      (EVENTS[k]||[]).forEach(e=>{
-        if (e.gid === editingGid) { e.text = title; e.col = activeColorIdx; e.notifyOffset = notifyOffset; e.notifyHour = notifyHour; e.notifyMinute = notifyMinute; found = true; }
-      });
-    });
+    const range = findGidDateRange(editingGid);
+    const found = range.length > 0;
+    if (found) {
+      const days = Math.max(1, Math.min(14, parseInt(document.getElementById('eventDaysInput').value)||1));
+      const [y, m, d] = range[0].split('-').map(Number);
+      removeGidEntries(editingGid);
+      for (let i = 0; i < days; i++) {
+        const dt = new Date(y, m - 1, d + i);
+        const key = dateKeyOf(dt.getFullYear(), dt.getMonth()+1, dt.getDate());
+        if (!EVENTS[key]) EVENTS[key] = [];
+        let span = null;
+        if (days > 1) span = i===0 ? 'start' : (i===days-1 ? 'end' : 'mid');
+        EVENTS[key].push({ gid: editingGid, text: title, col: activeColorIdx, span, notifyOffset, notifyHour, notifyMinute });
+      }
+    }
     saveEvents();
     renderGrid();
     cancelEditEvent();

@@ -286,7 +286,7 @@
     box-sizing: border-box;
     align-self: stretch;
   }
-  .event-tag.span-start { border-top-right-radius: 0; border-bottom-right-radius: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .event-tag.span-start { border-top-right-radius: 0; border-bottom-right-radius: 0; }
   .event-tag.span-mid { border-radius: 0; }
   .event-tag.span-end { border-top-left-radius: 0; border-bottom-left-radius: 0; }
   .event-tag.todo-marker{
@@ -816,8 +816,6 @@
     </div>
 
     <div class="calendar-container" id="calendarGrid"></div>
-
-    <button class="today-floating-btn" id="todayBtn">今天</button>
   </div>
 
   <!-- ============ 待辦事項頁 ============ -->
@@ -2018,6 +2016,8 @@ function attachDayPress(cell, key){
 }
 
 function renderEvents() {
+  const spanTagsByGid = {};
+
   Object.keys(EVENTS).forEach(key => {
     const container = document.getElementById(`evt-${key}`);
     if (!container) return;
@@ -2033,14 +2033,28 @@ function renderEvents() {
       const col = PALETTE[evt.col % PALETTE.length];
       tag.style.backgroundColor = col.bg;
       tag.style.color = col.text;
-      // 跨日行程只在第一天顯示文字（單行、太長用...省略），其他天用同色塊延續，
-      // 這樣每天的色塊高度自然一致，也不會把詞語硬拆成看不懂的片段
+      // 跨日行程只在第一天顯示完整文字（可以換行，不砍字），其他天用同色塊延續，
+      // 高度會在下面統一對齊，不會有前面大後面小、也不會把詞語硬拆成看不懂的片段
       tag.textContent = (evt.span === 'mid' || evt.span === 'end') ? '' : evt.text;
       container.appendChild(tag);
+
+      if (evt.span) {
+        if (!spanTagsByGid[evt.gid]) spanTagsByGid[evt.gid] = [];
+        spanTagsByGid[evt.gid].push(tag);
+      }
     });
 
     const cellEl = container.parentElement;
     if (cellEl) cellEl.classList.toggle('joins-right', joinsRight);
+  });
+
+  // 統一同一個跨日行程每一天色塊的高度：抓最高的那一天（通常是有文字的第一天），
+  // 其他天套用一樣的高度，這樣色塊就會一樣大、無縫接起來
+  Object.values(spanTagsByGid).forEach(tags => {
+    if (tags.length < 2) return;
+    let maxH = 0;
+    tags.forEach(t => { maxH = Math.max(maxH, t.offsetHeight); });
+    tags.forEach(t => { t.style.minHeight = maxH + 'px'; });
   });
 
   // 有到期日的待辦事項，也直接顯示在月曆對應日期上，讓月曆本身就是總覽
@@ -2689,10 +2703,6 @@ document.addEventListener('DOMContentLoaded', () => {
   renderPalette();
   renderGrid();
   syncNotifications();
-
-  document.getElementById('todayBtn').addEventListener('click', () => {
-    goToTodayMonth();
-  });
 
   document.getElementById('adminBtn').addEventListener('click', () => {
     renderNewTemplateColorPicker();

@@ -283,9 +283,12 @@
     font-weight: 600;
     padding: 3px 3px;
     border-radius: 5px;
-    white-space: nowrap;
+    white-space: normal;
     overflow: hidden;
-    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow-wrap: break-word;
     line-height: 1.32;
     min-height: calc(0.76rem * 1.32 + 6px);
     box-sizing: border-box;
@@ -2069,9 +2072,12 @@ function renderEvents() {
   const posByKey = {};
   GRID_CELLS.forEach(c => { posByKey[c.key] = c; });
 
+  // 哪些日期真的有被跨日色條蓋到（不是整列，是精準到那一天）
+  const coveredKeys = new Set();
+  Object.values(spanGroups).forEach(days => days.forEach(k => coveredKeys.add(k)));
+
   // 把每個跨日行程切成一段一段「同一列」的連續區間（換行/跨週就要分成新的一段）
   const runs = []; // {gid, col0, colInfo, evt, row, startCol, endCol}
-  const rowsWithSpan = new Set();
   Object.entries(spanGroups).forEach(([gid, days]) => {
     // 找到這個 gid 對應的其中一筆事件資料（文字/顏色都一樣，抓第一筆即可）
     let evtRef = null;
@@ -2089,19 +2095,17 @@ function renderEvents() {
         if (curRun) runs.push(curRun);
         curRun = { gid, row: pos.row, startCol: pos.col, endCol: pos.col, startKey: key, endKey: key, evt: evtRef };
       }
-      rowsWithSpan.add(pos.row);
     });
     if (curRun) runs.push(curRun);
   });
 
-  // 每一天格子：先放跨日行程需要的空白佔位（讓該列的其他事項都往下對齊、不被色條蓋住），再放非跨日的一般行程
+  // 每一天格子：只有「真的被色條蓋到」的那幾天才留空白佔位，其他天的行程照樣從最上面開始排
   Object.keys(EVENTS).forEach(key => {
     const container = document.getElementById(`evt-${key}`);
     if (!container) return;
     container.innerHTML = '';
 
-    const pos = posByKey[key];
-    if (pos && rowsWithSpan.has(pos.row)) {
+    if (coveredKeys.has(key)) {
       const spacer = document.createElement('div');
       spacer.className = 'event-tag span-spacer';
       container.appendChild(spacer);

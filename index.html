@@ -518,6 +518,18 @@
   .selected-color-hint.hidden{ display:none; }
 
   .field-label{ font-size:1rem; font-weight:800; margin: 16px 0 7px; color: var(--text-primary); }
+  .notify-toggle-row{
+    display:flex; gap:8px; margin-bottom: 8px;
+  }
+  .notify-toggle-btn{
+    flex:1; border:1px solid var(--border-grid); background: var(--card-sub-bg);
+    padding:10px; border-radius:12px; font-size:0.98rem; font-weight:700;
+    color: var(--text-secondary); cursor:pointer;
+  }
+  .notify-toggle-btn.active{
+    background: var(--macaron-mint); border-color: var(--macaron-mint);
+    color: var(--macaron-mint-text);
+  }
 
   .template-row{
     display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 4px;
@@ -909,9 +921,12 @@
       </div>
 
       <div class="field-label">推播時間</div>
-      <select class="input-box" id="eventNotifyTimeSelect">
-        <option value="">使用預設提醒時間</option>
-      </select>
+      <div class="notify-toggle-row" id="notifyOffsetToggle">
+        <button type="button" class="notify-toggle-btn active" data-offset="">使用預設</button>
+        <button type="button" class="notify-toggle-btn" data-offset="before">前一天</button>
+        <button type="button" class="notify-toggle-btn" data-offset="same">當天</button>
+      </div>
+      <select class="input-box hidden" id="eventNotifyTimeSelect"></select>
 
       <div class="btn-row">
         <button class="btn-secondary hidden" id="cancelEditBtn">取消編輯</button>
@@ -1997,7 +2012,7 @@ function buildSpanGroups(){
 
 function renderEvents() {
   const spanGroups = buildSpanGroups();
-  const LONG_TEXT_THRESHOLD = 8; // 超過這個字數，才需要平均分配到後面的格子，短文字維持顯示在第一天就好
+  const LONG_TEXT_THRESHOLD = 4; // 超過這個字數，才需要平均分配到後面的格子，短文字維持顯示在第一天就好
 
   Object.keys(EVENTS).forEach(key => {
     const container = document.getElementById(`evt-${key}`);
@@ -2080,31 +2095,36 @@ function closeSheet(id) {
   document.getElementById(id).classList.add('hidden');
 }
 
-function renderNotifyTimeOptions(){
+function renderNotifyTimeOptions(offset){
   const sel = document.getElementById('eventNotifyTimeSelect');
-  const defaultLabel = `使用預設提醒時間（前一天 ${String(SETTINGS.hour).padStart(2,'0')}:${String(SETTINGS.minute).padStart(2,'0')}）`;
-  sel.innerHTML = `<option value="">${defaultLabel}</option>`;
-
-  const beforeGroup = document.createElement('optgroup');
-  beforeGroup.label = '前一天提醒';
-  for(let h=6; h<=23; h++){
-    const opt = document.createElement('option');
-    opt.value = `before:${h}:0`;
-    opt.textContent = `前一天 ${String(h).padStart(2,'0')}:00`;
-    beforeGroup.appendChild(opt);
+  if (!offset) {
+    sel.classList.add('hidden');
+    sel.innerHTML = '';
+    return;
   }
-  sel.appendChild(beforeGroup);
-
-  const sameGroup = document.createElement('optgroup');
-  sameGroup.label = '當天提醒';
-  for(let h=0; h<=23; h++){
+  sel.classList.remove('hidden');
+  sel.innerHTML = '';
+  const hours = offset === 'same' ? Array.from({length:24}, (_,h)=>h) : Array.from({length:18}, (_,i)=>i+6);
+  hours.forEach(h=>{
     const opt = document.createElement('option');
-    opt.value = `same:${h}:0`;
-    opt.textContent = `當天 ${String(h).padStart(2,'0')}:00`;
-    sameGroup.appendChild(opt);
-  }
-  sel.appendChild(sameGroup);
+    opt.value = `${offset}:${h}:0`;
+    opt.textContent = `${offset === 'before' ? '前一天' : '當天'} ${String(h).padStart(2,'0')}:00`;
+    sel.appendChild(opt);
+  });
 }
+
+function setNotifyOffsetToggle(offset){
+  document.querySelectorAll('.notify-toggle-btn').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.offset === offset);
+  });
+  renderNotifyTimeOptions(offset);
+}
+
+document.getElementById('notifyOffsetToggle').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.notify-toggle-btn');
+  if (!btn) return;
+  setNotifyOffsetToggle(btn.dataset.offset);
+});
 
 function openDayDetailSheet(dateKey){
   selectedDateKey = dateKey;
@@ -2113,7 +2133,7 @@ function openDayDetailSheet(dateKey){
   const wd = ['日','一','二','三','四','五','六'][new Date(y,m-1,d).getDay()];
   document.getElementById('dayDetailTitle').textContent = `${y}年${m}月${d}日（星期${wd}）`;
   document.getElementById('dayDetailSub').textContent = '點下方範本快速加入，或自己輸入內容';
-  renderNotifyTimeOptions();
+  setNotifyOffsetToggle('');
 
   let libLunar = null;
   if (typeof Solar !== 'undefined') {
@@ -2175,8 +2195,9 @@ function startEditEvent(evt){
   input.focus();
   activeColorIdx = evt.col;
   renderPalette();
-  const sel = document.getElementById('eventNotifyTimeSelect');
-  sel.value = (evt.notifyHour != null) ? `${evt.notifyOffset||'before'}:${evt.notifyHour}:${evt.notifyMinute||0}` : '';
+  const offset = (evt.notifyHour != null) ? (evt.notifyOffset || 'before') : '';
+  setNotifyOffsetToggle(offset);
+  if (offset) document.getElementById('eventNotifyTimeSelect').value = `${offset}:${evt.notifyHour}:${evt.notifyMinute||0}`;
   document.getElementById('saveEventBtn').textContent = '更新這筆';
   document.getElementById('cancelEditBtn').classList.remove('hidden');
   refreshExistingList();
@@ -2185,7 +2206,7 @@ function cancelEditEvent(){
   editingGid = null;
   document.getElementById('eventTitleInput').value = '';
   document.getElementById('eventDaysInput').value = 1;
-  document.getElementById('eventNotifyTimeSelect').value = '';
+  setNotifyOffsetToggle('');
   document.getElementById('saveEventBtn').textContent = '儲存行程';
   document.getElementById('cancelEditBtn').classList.add('hidden');
   document.getElementById('selectedColorHint').classList.add('hidden');
@@ -2445,7 +2466,7 @@ document.getElementById('saveEventBtn').addEventListener('click', () => {
   refreshExistingList();
   document.getElementById('eventTitleInput').value = '';
   document.getElementById('eventDaysInput').value = 1;
-  document.getElementById('eventNotifyTimeSelect').value = '';
+  setNotifyOffsetToggle('');
   document.getElementById('selectedColorHint').classList.add('hidden');
   syncNotifications();
   showToast('已新增行程！');

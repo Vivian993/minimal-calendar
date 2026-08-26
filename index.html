@@ -14,14 +14,14 @@
 
 <style>
   :root {
-    /* 淺色莫蘭迪質感配色 */
+    /* 淺色暖調配色（跟父母版日曆同一種溫暖米色調） */
     --bg-outside: #A3D19B;
-    --app-bg: #FFFFFF;
-    --card-sub-bg: #F8F9FA;
-    --text-primary: #1A1A1A;
-    --text-secondary: #8E8E93;
-    --text-muted: #C7C7CC;
-    --border-grid: #E5E5EA;
+    --app-bg: #FFF8F0;
+    --card-sub-bg: #FBF1E4;
+    --text-primary: #3B2E27;
+    --text-secondary: #9A8A7C;
+    --text-muted: #D8CAB9;
+    --border-grid: #F0E2CE;
 
     --weekend-sun: #E57373;
     --weekend-sat: #74A2C5;
@@ -31,6 +31,16 @@
     --danger: #E53E3E;
     --holiday-bg: #FFEFC7;
     --holiday-text: #8A5A14;
+
+    /* 馬卡龍淺色系點綴色 */
+    --macaron-pink: #FFD9E8;
+    --macaron-pink-text: #9C4B6E;
+    --macaron-lavender: #E6DFFA;
+    --macaron-lavender-text: #6B5CA5;
+    --macaron-mint: #D7F5E3;
+    --macaron-mint-text: #2F8B5D;
+    --macaron-peach: #FFE8D2;
+    --macaron-peach-text: #B06B2C;
 
     --shadow-pop: 0 10px 30px rgba(0, 0, 0, 0.12);
     --glass-bg: rgba(255, 255, 255, 0.92);
@@ -50,6 +60,15 @@
     --weekend-sat: #64B5F6;
     --holiday-bg: #3A2F12;
     --holiday-text: #E8C97A;
+
+    --macaron-pink: #4A2E3B;
+    --macaron-pink-text: #F2A9C4;
+    --macaron-lavender: #332C4D;
+    --macaron-lavender-text: #C3B6F0;
+    --macaron-mint: #1F3B31;
+    --macaron-mint-text: #8FE0BA;
+    --macaron-peach: #3E2F22;
+    --macaron-peach-text: #F0B87E;
 
     --glass-bg: rgba(30, 30, 32, 0.92);
     --glass-border: rgba(255, 255, 255, 0.1);
@@ -90,17 +109,21 @@
 
   /* 頂部 StatusBar & 導覽區 */
   .top-bar {
-    padding: calc(env(safe-area-inset-top) + 12px) 16px 8px;
+    padding: calc(env(safe-area-inset-top) + 12px) 16px 10px;
     background: var(--app-bg);
     flex: 0 0 auto;
     z-index: 10;
   }
 
   .clock-row{
-    margin-bottom: 10px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
   }
+  .clock-row-main{ min-width: 0; cursor: pointer; }
   .clock{
-    font-size: clamp(1.9rem, 8vw, 2.5rem);
+    font-size: clamp(1.7rem, 7vw, 2.3rem);
     font-weight: 800;
     color: var(--text-primary);
     letter-spacing: 1px;
@@ -108,27 +131,53 @@
     line-height: 1;
   }
   .clock-date{
-    font-size: 0.95rem;
+    font-size: 0.92rem;
     font-weight: 700;
     color: var(--text-secondary);
     margin-top: 4px;
   }
 
+  .header-capsule-actions {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: 6px;
+  }
+
+  .capsule-btn {
+    border: none;
+    background: var(--macaron-lavender);
+    color: var(--macaron-lavender-text);
+    font-size: 1.05rem;
+    width: 38px; height: 38px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .capsule-btn:last-child{
+    background: var(--macaron-mint);
+    color: var(--macaron-mint-text);
+  }
+
   .status-row {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
+    margin-top: 12px;
   }
 
   .month-selector {
     display: flex;
     align-items: center;
     gap: 6px;
+    background: var(--macaron-peach);
+    border-radius: 20px;
+    padding: 4px 6px;
   }
   .month-nav-btn {
     border: none;
-    background: var(--card-sub-bg);
-    color: var(--text-primary);
+    background: rgba(255,255,255,.6);
+    color: var(--macaron-peach-text);
     width: 28px; height: 28px;
     border-radius: 50%;
     font-size: 0.95rem;
@@ -137,31 +186,11 @@
     cursor: pointer;
   }
   .month-label {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: var(--text-primary);
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--macaron-peach-text);
     min-width: 92px;
     text-align: center;
-  }
-
-  .header-capsule-actions {
-    display: flex;
-    align-items: center;
-    background: var(--card-sub-bg);
-    border-radius: 20px;
-    padding: 3px 8px;
-    gap: 4px;
-  }
-
-  .capsule-btn {
-    border: none;
-    background: transparent;
-    color: var(--text-primary);
-    font-size: 0.95rem;
-    width: 30px; height: 30px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
   }
 
   /* 星期欄標頭 */
@@ -366,7 +395,7 @@
     justify-content: space-around;
     background: var(--app-bg);
     border-top: 1px solid var(--border-grid);
-    padding: 6px 0 calc(env(safe-area-inset-bottom) + 6px);
+    padding: 8px 0 calc(env(safe-area-inset-bottom) + 8px);
     flex: 0 0 auto;
     z-index: 10;
   }
@@ -375,9 +404,9 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
-    font-size: 0.78rem;
-    font-weight: 600;
+    gap: 3px;
+    font-size: 1.02rem;
+    font-weight: 700;
     color: var(--text-secondary);
     border: none;
     background: transparent;
@@ -390,18 +419,18 @@
   .nav-btn.active { color: #E85575; }
 
   .nav-btn .nav-icon {
-    font-size: 1.5rem;
+    font-size: 2.1rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 26px; height: 26px;
+    width: 42px; height: 42px;
   }
 
   .nav-btn .nav-icon img {
-    width: 22px;
-    height: 22px;
+    width: 40px;
+    height: 40px;
     object-fit: cover;
-    border-radius: 6px;
+    border-radius: 9px;
   }
 
   /* 彈出Sheet視窗 */
@@ -746,19 +775,20 @@
   <div id="calendarView">
     <div class="top-bar">
       <div class="clock-row">
-        <div class="clock" id="clockDisplay">--:--:--</div>
-        <div class="clock-date" id="clockDateLine">—</div>
+        <div class="clock-row-main" id="clockRowMain">
+          <div class="clock" id="clockDisplay">--:--:--</div>
+          <div class="clock-date" id="clockDateLine">—</div>
+        </div>
+        <div class="header-capsule-actions">
+          <button class="capsule-btn" id="themeBtn" title="深色模式">🌙</button>
+          <button class="capsule-btn" id="adminBtn" title="後台管理">⚙️</button>
+        </div>
       </div>
       <div class="status-row">
         <div class="month-selector">
           <button class="month-nav-btn" id="prevMonthBtn">‹</button>
           <span class="month-label" id="monthYearLabel">載入中...</span>
           <button class="month-nav-btn" id="nextMonthBtn">›</button>
-        </div>
-
-        <div class="header-capsule-actions">
-          <button class="capsule-btn" id="themeBtn" title="深色模式">🌙</button>
-          <button class="capsule-btn" id="adminBtn" title="後台管理">⚙️</button>
         </div>
       </div>
     </div>
@@ -770,18 +800,6 @@
     <div class="calendar-container" id="calendarGrid"></div>
 
     <button class="today-floating-btn" id="todayBtn">今天</button>
-
-    <div class="action-menu hidden" id="actionMenu">
-      <div class="action-menu-header">
-        <span id="actionMenuDateLabel"></span>
-        <button class="action-menu-close" id="closeActionMenuBtn" aria-label="關閉">✕</button>
-      </div>
-      <button class="menu-item" id="openDayDetailBtn">
-        <span>📖</span> 查看／編輯這天
-      </button>
-      <div class="menu-divider"></div>
-      <div id="templateMenuContainer"></div>
-    </div>
   </div>
 
   <!-- ============ 待辦事項頁 ============ -->
@@ -888,6 +906,11 @@
           <div class="palette-picker" id="palettePicker"></div>
         </div>
       </div>
+
+      <div class="field-label">推播時間</div>
+      <select class="input-box" id="eventNotifyTimeSelect">
+        <option value="">使用預設提醒時間</option>
+      </select>
 
       <div class="btn-row">
         <button class="btn-secondary hidden" id="cancelEditBtn">取消編輯</button>
@@ -1524,14 +1547,15 @@ function getHoliday(y,m,d){
 }
 
 const PALETTE = [
-  { bg: '#B2D882', text: '#2A5006' },
-  { bg: '#5B7CFA', text: '#FFFFFF' },
-  { bg: '#A2C2F8', text: '#1E3A70' },
-  { bg: '#F8B1A6', text: '#681B10' },
-  { bg: '#FFF0A5', text: '#574600' },
-  { bg: '#E3A857', text: '#FFFFFF' },
-  { bg: '#D4E157', text: '#33691E' },
-  { bg: '#E1BEE7', text: '#4A148C' }
+  { bg: '#DCEFC9', text: '#3A6B12' },
+  { bg: '#D3DCFF', text: '#33448F' },
+  { bg: '#DCEAFD', text: '#2E5490' },
+  { bg: '#FCDCD6', text: '#93392A' },
+  { bg: '#FFF6CE', text: '#7A6300' },
+  { bg: '#F6DEBB', text: '#8A5A16' },
+  { bg: '#ECF2BE', text: '#576B1E' },
+  { bg: '#EEDBF2', text: '#6A3480' },
+  { bg: '#BEE9DF', text: '#1F6C5C' }  /* 哥哥的行事曆專用色（弟弟之後再另外指定一個新顏色） */
 ];
 
 /* 每個範本固定自己的顏色，彼此不重複；新增範本時可自己選一個還沒被用掉的顏色 */
@@ -1546,6 +1570,7 @@ function saveTemplateColors(){ return saveJSON('my_template_colors_v1', TEMPLATE
 function getOrAssignTemplateColor(name){
   if (TEMPLATE_COLORS[name] != null) return TEMPLATE_COLORS[name];
   const used = new Set(Object.values(TEMPLATE_COLORS));
+  used.add(8); // 保留給哥哥的行事曆專用色，範本自動配色不會用到
   let idx = 0;
   for (let i=0; i<PALETTE.length; i++){ if(!used.has(i)){ idx=i; break; } }
   TEMPLATE_COLORS[name] = idx;
@@ -1554,6 +1579,7 @@ function getOrAssignTemplateColor(name){
 }
 function unusedPaletteIndexes(){
   const used = new Set(Object.values(TEMPLATE_COLORS));
+  used.add(8);
   return PALETTE.map((_,i)=>i).filter(i=>!used.has(i));
 }
 
@@ -1621,20 +1647,39 @@ async function sendNtfy(topic, message, delaySeconds){
 const THREE_DAYS_MS = 3*24*3600*1000;
 
 function planNotifyForDate(dateKey){
-  if(!SETTINGS.notifyEnabled || !SETTINGS.ntfyTopic) return null;
+  if(!SETTINGS.notifyEnabled || !SETTINGS.ntfyTopic) return [];
   const items = (EVENTS[dateKey]||[]).filter(e => !e.span || e.span === 'start');
-  if(!items.length) return null;
+  if(!items.length) return [];
   const [y,m,d] = dateKey.split('-').map(Number);
-  const notifyDate = new Date(y, m-1, d);
-  notifyDate.setDate(notifyDate.getDate()-1);
-  notifyDate.setHours(SETTINGS.hour, SETTINGS.minute, 0, 0);
-  const delayMs = notifyDate - new Date();
-  if(delayMs < 10000 || delayMs > THREE_DAYS_MS) return null;
-  const content = items.map(e=>e.text).join('、');
-  const key = 'sched:'+dateKey;
-  const prev = NOTIFLOG[key];
-  if(prev && prev.content === content) return null;
-  return { key, content, msg:`明天行程：${content}`, delaySeconds: Math.floor(delayMs/1000) };
+
+  // 依「這筆行程自己選的推播時間／前一天或當天」分組；沒特別選的用預設（前一天＋預設時間）
+  const groups = {};
+  items.forEach(it=>{
+    const offset = it.notifyOffset || 'before';
+    const hour = (it.notifyHour != null) ? it.notifyHour : SETTINGS.hour;
+    const minute = (it.notifyMinute != null) ? it.notifyMinute : SETTINGS.minute;
+    const gk = `${offset}:${hour}:${minute}`;
+    if(!groups[gk]) groups[gk] = { offset, hour, minute, texts: [] };
+    groups[gk].texts.push(it.text);
+  });
+
+  const wd = ['日','一','二','三','四','五','六'][new Date(y,m-1,d).getDay()];
+  const dateLabel = `${m}/${d}(${wd})`;
+  const plans = [];
+  Object.entries(groups).forEach(([gk, g])=>{
+    const notifyDate = new Date(y, m-1, d);
+    if(g.offset === 'before') notifyDate.setDate(notifyDate.getDate()-1);
+    notifyDate.setHours(g.hour, g.minute, 0, 0);
+    const delayMs = notifyDate - new Date();
+    if(delayMs < 10000 || delayMs > THREE_DAYS_MS) return;
+    const content = g.texts.join('、');
+    const key = `sched:${dateKey}:${gk}`;
+    const prev = NOTIFLOG[key];
+    if(prev && prev.content === content) return;
+    const dayWord = g.offset === 'before' ? '明天' : '今天';
+    plans.push({ key, content, msg: `${dayWord}${dateLabel}：${content}`, delaySeconds: Math.floor(delayMs/1000) });
+  });
+  return plans;
 }
 
 async function syncNotifications(){
@@ -1644,8 +1689,8 @@ async function syncNotifications(){
   for(let i=0;i<=4;i++){
     const dt = new Date(base); dt.setDate(dt.getDate()+i);
     const key = dateKeyOf(dt.getFullYear(), dt.getMonth()+1, dt.getDate());
-    const plan = planNotifyForDate(key);
-    if(plan){
+    const plans = planNotifyForDate(key);
+    for(const plan of plans){
       const ok = await sendNtfy(SETTINGS.ntfyTopic, plan.msg, plan.delaySeconds);
       if(ok){ NOTIFLOG[plan.key] = { content: plan.content, sentAt: Date.now() }; dirty = true; }
     }
@@ -1764,10 +1809,8 @@ document.getElementById('resetNavBtn').addEventListener('click', () => {
 
 /* ============ 快速範本 ============ */
 function renderTemplateMenu() {
-  const menuContainer = document.getElementById('templateMenuContainer');
   const chipContainer = document.getElementById('templateChips');
   const manageList = document.getElementById('templateManageList');
-  menuContainer.innerHTML = '';
   chipContainer.innerHTML = '';
   if(manageList) manageList.innerHTML = '';
 
@@ -1775,12 +1818,6 @@ function renderTemplateMenu() {
     const colIdx = getOrAssignTemplateColor(tpl);
     const col = PALETTE[colIdx];
     const icon = getTemplateIcon(tpl);
-
-    const btn = document.createElement('button');
-    btn.className = 'menu-item';
-    btn.innerHTML = `<span class="menu-icon-badge" style="background:${col.bg};color:${col.text};">${icon}</span><span>${tpl}</span>`;
-    btn.onclick = () => useTemplate(tpl);
-    menuContainer.appendChild(btn);
 
     const chip = document.createElement('button');
     chip.type = 'button';
@@ -1914,9 +1951,7 @@ function attachDayPress(cell, key){
     timer = setTimeout(() => {
       fired = true;
       cell.classList.remove('pressing');
-      selectedDateKey = key;
-      renderGrid();
-      toggleActionMenu(true);
+      openDayDetailSheet(key);
     }, THRESHOLD);
   };
   const clearTimer = () => {
@@ -1961,7 +1996,8 @@ function renderEvents() {
       const col = PALETTE[evt.col % PALETTE.length];
       tag.style.backgroundColor = col.bg;
       tag.style.color = col.text;
-      tag.textContent = evt.text;
+      // 跨日行程只在第一天顯示文字，後面幾天用同色色塊延續即可，不用每格都重複打字
+      tag.textContent = (evt.span === 'mid' || evt.span === 'end') ? '' : evt.text;
       container.appendChild(tag);
     });
 
@@ -2005,28 +2041,35 @@ document.getElementById('nextMonthBtn').addEventListener('click', nextMonth);
 })();
 
 /* ============ 選單／Sheet 開關 ============ */
-function toggleActionMenu(show) {
-  const menu = document.getElementById('actionMenu');
-  if (show) {
-    const [y,m,d] = selectedDateKey.split('-').map(Number);
-    const wd = ['日','一','二','三','四','五','六'][new Date(y,m-1,d).getDay()];
-    document.getElementById('actionMenuDateLabel').textContent = `${m}月${d}日（星期${wd}）`;
-    menu.classList.remove('hidden');
-  } else {
-    menu.classList.add('hidden');
-  }
-}
-document.getElementById('closeActionMenuBtn').addEventListener('click', () => {
-  toggleActionMenu(false);
-});
 function closeSheet(id) {
   document.getElementById(id).classList.add('hidden');
 }
 
-document.getElementById('openDayDetailBtn').addEventListener('click', () => {
-  toggleActionMenu(false);
-  openDayDetailSheet(selectedDateKey);
-});
+function renderNotifyTimeOptions(){
+  const sel = document.getElementById('eventNotifyTimeSelect');
+  const defaultLabel = `使用預設提醒時間（前一天 ${String(SETTINGS.hour).padStart(2,'0')}:${String(SETTINGS.minute).padStart(2,'0')}）`;
+  sel.innerHTML = `<option value="">${defaultLabel}</option>`;
+
+  const beforeGroup = document.createElement('optgroup');
+  beforeGroup.label = '前一天提醒';
+  for(let h=6; h<=23; h++){
+    const opt = document.createElement('option');
+    opt.value = `before:${h}:0`;
+    opt.textContent = `前一天 ${String(h).padStart(2,'0')}:00`;
+    beforeGroup.appendChild(opt);
+  }
+  sel.appendChild(beforeGroup);
+
+  const sameGroup = document.createElement('optgroup');
+  sameGroup.label = '當天提醒';
+  for(let h=0; h<=23; h++){
+    const opt = document.createElement('option');
+    opt.value = `same:${h}:0`;
+    opt.textContent = `當天 ${String(h).padStart(2,'0')}:00`;
+    sameGroup.appendChild(opt);
+  }
+  sel.appendChild(sameGroup);
+}
 
 function openDayDetailSheet(dateKey){
   selectedDateKey = dateKey;
@@ -2035,6 +2078,7 @@ function openDayDetailSheet(dateKey){
   const wd = ['日','一','二','三','四','五','六'][new Date(y,m-1,d).getDay()];
   document.getElementById('dayDetailTitle').textContent = `${y}年${m}月${d}日（星期${wd}）`;
   document.getElementById('dayDetailSub').textContent = '點下方範本快速加入，或自己輸入內容';
+  renderNotifyTimeOptions();
 
   let libLunar = null;
   if (typeof Solar !== 'undefined') {
@@ -2096,6 +2140,8 @@ function startEditEvent(evt){
   input.focus();
   activeColorIdx = evt.col;
   renderPalette();
+  const sel = document.getElementById('eventNotifyTimeSelect');
+  sel.value = (evt.notifyHour != null) ? `${evt.notifyOffset||'before'}:${evt.notifyHour}:${evt.notifyMinute||0}` : '';
   document.getElementById('saveEventBtn').textContent = '更新這筆';
   document.getElementById('cancelEditBtn').classList.remove('hidden');
   refreshExistingList();
@@ -2104,6 +2150,7 @@ function cancelEditEvent(){
   editingGid = null;
   document.getElementById('eventTitleInput').value = '';
   document.getElementById('eventDaysInput').value = 1;
+  document.getElementById('eventNotifyTimeSelect').value = '';
   document.getElementById('saveEventBtn').textContent = '儲存行程';
   document.getElementById('cancelEditBtn').classList.add('hidden');
   document.getElementById('selectedColorHint').classList.add('hidden');
@@ -2130,7 +2177,6 @@ function deleteEventGroup(gid){
 function useTemplate(text){
   // 範本只負責套用固定顏色，文字完全由您自己輸入，
   // 例如點「生日」不會自動填字，只會把顏色換成生日專屬的顏色，方便直接打「媽媽生日」之類的內容。
-  toggleActionMenu(false);
   if(document.getElementById('sheetOverlay').classList.contains('hidden')){
     openDayDetailSheet(selectedDateKey);
   }
@@ -2322,11 +2368,18 @@ document.getElementById('saveEventBtn').addEventListener('click', () => {
   const title = document.getElementById('eventTitleInput').value.trim();
   if (!title) { showToast('請先輸入行程名稱'); return; }
 
+  const notifySelVal = document.getElementById('eventNotifyTimeSelect').value;
+  let notifyOffset = null, notifyHour = null, notifyMinute = null;
+  if (notifySelVal) {
+    const [off, nh, nm] = notifySelVal.split(':');
+    notifyOffset = off; notifyHour = Number(nh); notifyMinute = Number(nm);
+  }
+
   if (editingGid) {
     let found = false;
     Object.keys(EVENTS).forEach(k=>{
       (EVENTS[k]||[]).forEach(e=>{
-        if (e.gid === editingGid) { e.text = title; e.col = activeColorIdx; found = true; }
+        if (e.gid === editingGid) { e.text = title; e.col = activeColorIdx; e.notifyOffset = notifyOffset; e.notifyHour = notifyHour; e.notifyMinute = notifyMinute; found = true; }
       });
     });
     saveEvents();
@@ -2335,6 +2388,7 @@ document.getElementById('saveEventBtn').addEventListener('click', () => {
     refreshExistingList();
     syncNotifications();
     showToast(found ? '已更新行程！' : '更新失敗，請稍後再試');
+    if (found) closeSheet('sheetOverlay');
     return;
   }
 
@@ -2347,7 +2401,7 @@ document.getElementById('saveEventBtn').addEventListener('click', () => {
     if (!EVENTS[key]) EVENTS[key] = [];
     let span = null;
     if (days > 1) span = i===0 ? 'start' : (i===days-1 ? 'end' : 'mid');
-    EVENTS[key].push({ gid, text: title, col: activeColorIdx, span });
+    EVENTS[key].push({ gid, text: title, col: activeColorIdx, span, notifyOffset, notifyHour, notifyMinute });
   }
   activeColorIdx = (activeColorIdx+1) % PALETTE.length;
 
@@ -2356,9 +2410,11 @@ document.getElementById('saveEventBtn').addEventListener('click', () => {
   refreshExistingList();
   document.getElementById('eventTitleInput').value = '';
   document.getElementById('eventDaysInput').value = 1;
+  document.getElementById('eventNotifyTimeSelect').value = '';
   document.getElementById('selectedColorHint').classList.add('hidden');
   syncNotifications();
   showToast('已新增行程！');
+  closeSheet('sheetOverlay');
 });
 
 /* 色盤初始化 */
@@ -2550,6 +2606,12 @@ function updateClockDisplay(){
   }
 }
 setInterval(updateClockDisplay, 1000);
+updateClockDisplay();
+
+document.getElementById('clockRowMain').addEventListener('click', () => {
+  const now = new Date();
+  openDayDetailSheet(dateKeyOf(now.getFullYear(), now.getMonth()+1, now.getDate()));
+});
 
 /* ============ 初始化 ============ */
 document.addEventListener('DOMContentLoaded', () => {
@@ -2565,10 +2627,6 @@ document.addEventListener('DOMContentLoaded', () => {
   renderPalette();
   renderGrid();
   syncNotifications();
-
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('#actionMenu') && !e.target.closest('.day-cell')) toggleActionMenu(false);
-  });
 
   document.getElementById('todayBtn').addEventListener('click', () => {
     goToTodayMonth();

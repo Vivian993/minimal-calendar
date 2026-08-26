@@ -1764,9 +1764,14 @@ async function syncNotifications(){
 
 /* ============ 底部選單（可長按自訂圖示） ============ */
 let currentTab = 0;
+let navPressTimers = [];
 function renderBottomNav() {
   const container = document.getElementById('bottomNav');
   container.innerHTML = '';
+
+  // 清掉所有還沒觸發的長按計時器，避免舊按鈕被重繪換掉後，計時器還在背景倒數、之後莫名跳出編輯視窗
+  navPressTimers.forEach(t => clearTimeout(t));
+  navPressTimers = [];
 
   NAV_ITEMS.forEach((item, index) => {
     const btn = document.createElement('button');
@@ -1780,11 +1785,13 @@ function renderBottomNav() {
     const startPress = () => {
       longPressed = false;
       pressTimer = setTimeout(() => { longPressed = true; openNavEditSheet(index); }, 700);
+      navPressTimers.push(pressTimer);
     };
     const cancelPress = () => { if (pressTimer) clearTimeout(pressTimer); };
 
     btn.addEventListener('touchstart', startPress, { passive: true });
     btn.addEventListener('touchend', cancelPress);
+    btn.addEventListener('touchcancel', cancelPress);
     btn.addEventListener('mousedown', startPress);
     btn.addEventListener('mouseup', cancelPress);
     btn.addEventListener('mouseleave', cancelPress);

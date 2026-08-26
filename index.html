@@ -282,13 +282,14 @@
     white-space: normal;
     overflow-wrap: break-word;
     line-height: 1.32;
-    width: 100%;
+    min-height: calc(0.82rem * 1.32 + 6px);
     box-sizing: border-box;
+    width: 100%;
     align-self: stretch;
   }
-  .event-tag.span-start { border-top-right-radius: 0; border-bottom-right-radius: 0; white-space: nowrap; overflow: hidden; text-overflow: clip; }
-  .event-tag.span-mid { border-radius: 0; white-space: nowrap; overflow: hidden; text-overflow: clip; }
-  .event-tag.span-end { border-top-left-radius: 0; border-bottom-left-radius: 0; white-space: nowrap; overflow: hidden; text-overflow: clip; }
+  .event-tag.span-start { border-top-right-radius: 0; border-bottom-right-radius: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .event-tag.span-mid { border-radius: 0; white-space: nowrap; overflow: hidden; }
+  .event-tag.span-end { border-top-left-radius: 0; border-bottom-left-radius: 0; white-space: nowrap; overflow: hidden; }
   .event-tag.todo-marker{
     background: transparent;
     border: 1.4px dashed var(--text-secondary);
@@ -2015,23 +2016,7 @@ function attachDayPress(cell, key){
   cell.addEventListener('mouseleave', clearTimer);
 }
 
-function buildSpanGroups(){
-  // 找出每個跨日行程 (gid) 依日期排序後的順序，用來判斷「這一天是第幾天／總共幾天」
-  const groups = {};
-  Object.keys(EVENTS).forEach(key=>{
-    (EVENTS[key]||[]).forEach(evt=>{
-      if (!evt.span) return;
-      if (!groups[evt.gid]) groups[evt.gid] = [];
-      groups[evt.gid].push(key);
-    });
-  });
-  Object.values(groups).forEach(arr => arr.sort());
-  return groups;
-}
-
 function renderEvents() {
-  const spanGroups = buildSpanGroups();
-
   Object.keys(EVENTS).forEach(key => {
     const container = document.getElementById(`evt-${key}`);
     if (!container) return;
@@ -2047,19 +2032,9 @@ function renderEvents() {
       const col = PALETTE[evt.col % PALETTE.length];
       tag.style.backgroundColor = col.bg;
       tag.style.color = col.text;
-
-      if (evt.span) {
-        // 跨日行程：把文字平均切開，分配到它佔用的每一天格子裡，單行顯示，
-        // 這樣每天色塊天然一樣高，也是無縫連在一起的一整條
-        const days = spanGroups[evt.gid] || [key];
-        const totalDays = days.length;
-        const idx = days.indexOf(key);
-        const perDay = Math.ceil(evt.text.length / totalDays);
-        const from = idx * perDay;
-        tag.textContent = evt.text.slice(from, from + perDay);
-      } else {
-        tag.textContent = evt.text;
-      }
+      // 跨日行程只在第一天顯示文字（單行，太長用...省略，不逐字硬拆），
+      // 其他天用同色塊延續，天數再長也不會拆出看不懂的碎字
+      tag.textContent = (evt.span === 'mid' || evt.span === 'end') ? '' : evt.text;
       container.appendChild(tag);
     });
 

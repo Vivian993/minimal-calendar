@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>我的極簡風格日曆</title>
+<title>龜好日子</title>
 
 <!-- 📌 iPhone 桌面 App 圖示：它會去抓您上傳到 GitHub 的 custom-icon.png 照片 -->
 <link rel="apple-touch-icon" href="custom-icon.png">
@@ -250,6 +250,23 @@
     width: 22px; height: 22px;
     display: flex; align-items: center; justify-content: center;
     padding: 0;
+  }
+  .day-top-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+  .lunar-day-label {
+    font-size: 0.62rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    padding: 3px 4px 0 0;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .lunar-day-label.special {
+    color: var(--danger);
+    font-weight: 800;
   }
 
   .day-cell.selected-ring { box-shadow: inset 0 0 0 2px var(--accent); z-index: 2; }
@@ -1708,7 +1725,7 @@ async function sendNtfy(topic, message, delaySeconds){
   }catch(e){ console.error('ntfy fail', e); return false; }
 }
 
-const THREE_DAYS_MS = 3*24*3600*1000;
+const THREE_DAYS_MS = 24*3600*1000; /* 原本提前3天就排程，縮短成約1天內才排，降低「排定之後又被改掉」的機率 */
 
 function planNotifyForDate(dateKey){
   if(!SETTINGS.notifyEnabled || !SETTINGS.ntfyTopic) return [];
@@ -1738,8 +1755,9 @@ function planNotifyForDate(dateKey){
     if(delayMs < 10000 || delayMs > THREE_DAYS_MS) return;
     const content = g.texts.join('、');
     const key = `sched:${dateKey}:${gk}`;
-    const prev = NOTIFLOG[key];
-    if(prev && prev.content === content) return;
+    // 只要這個時段已經排過提醒，不管後來內容怎麼改，都不再重排——
+    // ntfy 沒辦法取消已經排定的舊提醒，重排只會讓舊的、新的都準時送達，變成重複通知
+    if(NOTIFLOG[key]) return;
     const dayWord = g.offset === 'before' ? '明天' : '今天';
     plans.push({ key, content, msg: `${dayWord}${dateLabel}：${content}`, delaySeconds: Math.floor(delayMs/1000) });
   });
@@ -2002,8 +2020,19 @@ function renderGrid() {
     const hol = getHoliday(c.y, c.m, c.d);
     if (hol) cell.classList.add('holiday');
 
+    const lunar = solar2lunar(c.y, c.m, c.d);
+    let lunarLabel = '';
+    let lunarSpecial = false;
+    if (lunar) {
+      lunarLabel = dayCn(lunar.lDay);
+      lunarSpecial = (lunar.lDay === 1 || lunar.lDay === 15);
+    }
+
     cell.innerHTML = `
-      <div class="day-number">${c.d}</div>
+      <div class="day-top-row">
+        <div class="day-number">${c.d}</div>
+        <div class="lunar-day-label${lunarSpecial ? ' special' : ''}">${lunarLabel}</div>
+      </div>
       ${hol ? `<div class="holiday-label">${hol}</div>` : ''}
       <div class="events-wrapper" id="evt-${key}"></div>
     `;

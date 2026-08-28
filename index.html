@@ -585,6 +585,45 @@
   .template-row{
     display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 4px;
   }
+  .template-sub-panel{
+    background: var(--card-sub-bg);
+    border: 1px solid var(--border-grid);
+    border-radius: 14px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+  .template-sub-panel.hidden{ display:none; }
+  .template-sub-title{
+    font-size: 0.88rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;
+  }
+  .template-sub-options{
+    display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 10px;
+  }
+  .template-sub-option{
+    border:1px solid var(--border-grid);
+    background: var(--app-bg);
+    color: var(--text-primary);
+    border-radius: 16px;
+    padding: 7px 14px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .template-sub-option.active{
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .template-sub-row{
+    display:flex; gap:8px;
+  }
+  .template-sub-row input{
+    flex:1;
+  }
+  .template-sub-row button{
+    border:none; background: var(--accent); color:#fff;
+    border-radius: 10px; padding: 0 16px; font-weight:700; font-size:0.92rem; cursor:pointer;
+  }
   .template-chip{
     border:1px solid var(--border-grid);
     background: var(--card-sub-bg);
@@ -953,6 +992,7 @@
 
       <div class="field-label">快速範本</div>
       <div class="template-row" id="templateChips"></div>
+      <div class="template-sub-panel hidden" id="templateSubPanel"></div>
 
       <div class="field-label">自訂內容</div>
       <div class="selected-color-hint hidden" id="selectedColorHint"></div>
@@ -1080,6 +1120,7 @@
         <h4>行事曆快速範本</h4>
         <p class="hint">長按日期時可以快速套用的項目，每個範本都有自己固定的顏色，可以自己增加或刪除。</p>
         <div class="existing-list" id="templateManageList"></div>
+        <div class="template-sub-panel hidden" id="templateEditPanel"></div>
         <input type="text" class="input-box" id="newTemplateInput" placeholder="範本名稱 (例如: 健身, 聚餐)">
         <div class="field-label" style="margin-top:0;">選一個顏色給這個新範本</div>
         <div class="palette-picker" id="newTemplateColorPicker"></div>
@@ -1128,7 +1169,26 @@ let NAV_ITEMS = loadJSON('my_nav_items', [
 ]);
 
 /* 自訂選單範本 */
-let TEMPLATES = loadJSON('my_templates', ['生日', '看醫生', '聚餐', '旅遊', '繳費']);
+/* 範本現在是物件（不再只是文字），支援三種模式：
+   plain = 一般（只套色，手動打字，跟原本一樣）
+   submenu = 下拉選單（例如生日→老公/哥哥/弟弟/爸爸/媽媽，選了再自己補一個字尾）
+   compose = 輸入後自動組合文字（例如旅遊輸入「小琉球」自動變成「小琉球之旅」）
+   為了讓舊資料（純文字陣列）能自動升級，這邊做一次搬遷，並且對這幾個常見範本給預設好的下拉/組合設定 */
+const TEMPLATE_DEFAULTS_BY_NAME = {
+  '生日': { mode:'submenu', options:['老公','哥哥','弟弟','爸爸','媽媽'], suffix:'生日', allowCustom:true, prompt:'其他家人' },
+  '旅遊': { mode:'compose', suffix:'之旅', prompt:'目的地（例如：小琉球）' },
+  '聚餐': { mode:'compose', suffix:'聚餐', prompt:'地點/備註（例如：王品）' },
+  '繳費': { mode:'submenu', options:['勞健保','手機費','學費','信用卡','其他'], suffix:'', allowCustom:true, prompt:'其他項目' }
+};
+function migrateTemplates(raw){
+  return (raw||[]).map(t=>{
+    if (typeof t === 'string') {
+      return Object.assign({ name:t, mode:'plain' }, TEMPLATE_DEFAULTS_BY_NAME[t] || {});
+    }
+    return t;
+  });
+}
+let TEMPLATES = migrateTemplates(loadJSON('my_templates', ['生日', '看醫生', '聚餐', '旅遊', '繳費']));
 
 /* 通知與外觀設定 */
 let SETTINGS = loadJSON('my_cal_settings_v1', { ntfyTopic:'', hour:8, minute:0, notifyEnabled:false, theme:'light' });
@@ -1613,15 +1673,15 @@ function getHoliday(y,m,d){
 }
 
 const PALETTE = [
-  { bg: '#DCEFC9', text: '#3A6B12' },
-  { bg: '#D3DCFF', text: '#33448F' },
-  { bg: '#DCEAFD', text: '#2E5490' },
-  { bg: '#FCDCD6', text: '#93392A' },
-  { bg: '#FFF6CE', text: '#7A6300' },
-  { bg: '#F6DEBB', text: '#8A5A16' },
-  { bg: '#ECF2BE', text: '#576B1E' },
-  { bg: '#EEDBF2', text: '#6A3480' },
-  { bg: '#BEE9DF', text: '#1F6C5C' }  /* 哥哥的行事曆專用色（弟弟之後再另外指定一個新顏色） */
+  { bg: '#F7C6C0', text: '#8B2E22' },  /* 珊瑚紅 */
+  { bg: '#FAD6A5', text: '#8A5310' },  /* 橘 */
+  { bg: '#F3E28C', text: '#6B5900' },  /* 黃 */
+  { bg: '#C3E7A4', text: '#35630F' },  /* 綠 */
+  { bg: '#AED2F5', text: '#1D4E85' },  /* 藍 */
+  { bg: '#C8CBF5', text: '#3B3F8C' },  /* 靛/薰衣草藍 */
+  { bg: '#E0C2F0', text: '#692F8C' },  /* 紫 */
+  { bg: '#F5C2DD', text: '#8C2F60' },  /* 粉紫紅 */
+  { bg: '#BEE9DF', text: '#1F6C5C' }   /* 哥哥的行事曆專用色（弟弟之後再另外指定一個新顏色） */
 ];
 
 /* 每個範本固定自己的顏色，彼此不重複；新增範本時可自己選一個還沒被用掉的顏色 */
@@ -1733,10 +1793,10 @@ function planNotifyForDate(dateKey){
   if(!items.length) return [];
   const [y,m,d] = dateKey.split('-').map(Number);
 
-  // 依「這筆行程自己選的推播時間／前一天或當天」分組；沒特別選的用預設（前一天＋預設時間）
+  // 依「這筆行程自己選的推播時間／前一天或當天」分組；沒特別選的用預設（當天＋預設時間）
   const groups = {};
   items.forEach(it=>{
-    const offset = it.notifyOffset || 'before';
+    const offset = it.notifyOffset || 'same';
     const hour = (it.notifyHour != null) ? it.notifyHour : SETTINGS.hour;
     const minute = (it.notifyMinute != null) ? it.notifyMinute : SETTINGS.minute;
     const gk = `${offset}:${hour}:${minute}`;
@@ -1904,9 +1964,9 @@ function renderTemplateMenu() {
   if(manageList) manageList.innerHTML = '';
 
   TEMPLATES.forEach((tpl, idx) => {
-    const colIdx = getOrAssignTemplateColor(tpl);
+    const colIdx = getOrAssignTemplateColor(tpl.name);
     const col = PALETTE[colIdx];
-    const icon = getTemplateIcon(tpl);
+    const icon = getTemplateIcon(tpl.name);
 
     const chip = document.createElement('button');
     chip.type = 'button';
@@ -1914,17 +1974,24 @@ function renderTemplateMenu() {
     chip.style.background = col.bg;
     chip.style.color = col.text;
     chip.style.borderColor = 'transparent';
-    chip.textContent = `${icon} ${tpl}`;
-    chip.onclick = () => useTemplate(tpl);
+    const modeMark = tpl.mode === 'submenu' ? ' ▾' : (tpl.mode === 'compose' ? ' …' : '');
+    chip.textContent = `${icon} ${tpl.name}${modeMark}`;
+    chip.onclick = () => {
+      if (tpl.mode === 'submenu') openTemplateSubmenu(tpl);
+      else if (tpl.mode === 'compose') openTemplateCompose(tpl);
+      else useTemplate(tpl.name);
+    };
     chipContainer.appendChild(chip);
 
     if(manageList){
       const row = document.createElement('div');
       row.className = 'existing-item';
-      row.innerHTML = `<span class="dot" style="background:${col.bg};"></span><span class="txt">${icon} ${tpl}</span><button aria-label="刪除範本">✕</button>`;
-      row.querySelector('button').addEventListener('click', ()=>{
+      const modeLabel = tpl.mode === 'submenu' ? '（下拉選單）' : (tpl.mode === 'compose' ? '（自動組合）' : '');
+      row.innerHTML = `<span class="dot" style="background:${col.bg};"></span><span class="txt">${icon} ${tpl.name}${modeLabel}</span><button class="tpl-edit-btn" aria-label="編輯">編輯</button><button aria-label="刪除範本">✕</button>`;
+      row.querySelector('.tpl-edit-btn').addEventListener('click', ()=> openTemplateEditForm(tpl, idx));
+      row.querySelector('button[aria-label="刪除範本"]').addEventListener('click', ()=>{
         TEMPLATES.splice(idx,1);
-        delete TEMPLATE_COLORS[tpl];
+        delete TEMPLATE_COLORS[tpl.name];
         saveTemplates();
         saveTemplateColors();
         renderTemplateMenu();
@@ -1937,6 +2004,164 @@ function renderTemplateMenu() {
   if(manageList && !TEMPLATES.length){
     manageList.innerHTML = '<div class="empty-hint">目前沒有任何範本</div>';
   }
+}
+
+// 把範本套用到「自訂內容」欄位：文字、顏色都會一起設定好
+function applyTemplateText(tpl, finalText){
+  if (!finalText) return;
+  if(document.getElementById('sheetOverlay').classList.contains('hidden')){
+    openDayDetailSheet(selectedDateKey);
+  }
+  activeColorIdx = getOrAssignTemplateColor(tpl.name);
+  renderPalette();
+  const input = document.getElementById('eventTitleInput');
+  input.value = finalText;
+  input.focus();
+  const col = PALETTE[activeColorIdx];
+  const hint = document.getElementById('selectedColorHint');
+  hint.innerHTML = `<span class="dot" style="background:${col.bg};"></span>已套用「${tpl.name}」的顏色`;
+  hint.classList.remove('hidden');
+  document.getElementById('templateSubPanel').classList.add('hidden');
+}
+
+// 下拉選單型範本（例如生日→老公/哥哥/弟弟/爸爸/媽媽）
+function openTemplateSubmenu(tpl){
+  playSelectSound();
+  const panel = document.getElementById('templateSubPanel');
+  panel.innerHTML = `
+    <div class="template-sub-title">選一個，或自己輸入</div>
+    <div class="template-sub-options" id="tplSubOptions"></div>
+    ${tpl.allowCustom ? `
+      <div class="template-sub-row">
+        <input type="text" class="input-box" id="tplSubCustomInput" placeholder="${tpl.prompt || '自己輸入'}">
+        <button type="button" id="tplSubCustomBtn">確定</button>
+      </div>` : ''}
+  `;
+  const optWrap = panel.querySelector('#tplSubOptions');
+  (tpl.options||[]).forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'template-sub-option';
+    btn.textContent = opt;
+    btn.addEventListener('click', ()=>{
+      playClick();
+      applyTemplateText(tpl, opt + (tpl.suffix||''));
+    });
+    optWrap.appendChild(btn);
+  });
+  const customBtn = panel.querySelector('#tplSubCustomBtn');
+  if(customBtn){
+    customBtn.addEventListener('click', ()=>{
+      const v = panel.querySelector('#tplSubCustomInput').value.trim();
+      if(!v){ showToast('請先輸入內容'); return; }
+      playClick();
+      applyTemplateText(tpl, v + (tpl.suffix||''));
+    });
+  }
+  panel.classList.remove('hidden');
+}
+
+// 輸入後自動組合文字型範本（例如旅遊輸入「小琉球」自動變成「小琉球之旅」）
+function openTemplateCompose(tpl){
+  playSelectSound();
+  const panel = document.getElementById('templateSubPanel');
+  panel.innerHTML = `
+    <div class="template-sub-title">${tpl.prompt || '輸入內容'}，會自動組合成「OO${tpl.suffix||''}」</div>
+    <div class="template-sub-row">
+      <input type="text" class="input-box" id="tplComposeInput" placeholder="${tpl.prompt || ''}">
+      <button type="button" id="tplComposeBtn">確定</button>
+    </div>
+  `;
+  const composeBtn = panel.querySelector('#tplComposeBtn');
+  const doApply = ()=>{
+    const v = panel.querySelector('#tplComposeInput').value.trim();
+    if(!v){ showToast('請先輸入內容'); return; }
+    playClick();
+    applyTemplateText(tpl, v + (tpl.suffix||''));
+  };
+  composeBtn.addEventListener('click', doApply);
+  panel.querySelector('#tplComposeInput').addEventListener('keydown', e=>{ if(e.key==='Enter') doApply(); });
+  panel.classList.remove('hidden');
+  panel.querySelector('#tplComposeInput').focus();
+}
+
+// 後台編輯範本：可以把一般範本改成下拉選單或自動組合模式，或調整已有的選項/字尾
+function openTemplateEditForm(tpl, idx){
+  playSelectSound();
+  const panel = document.getElementById('templateEditPanel');
+  const modeNow = tpl.mode || 'plain';
+  panel.innerHTML = `
+    <div class="template-sub-title">編輯「${tpl.name}」的用法</div>
+    <div class="template-sub-options" id="tplEditModeRow">
+      <button type="button" class="template-sub-option" data-mode="plain">一般（手動打字）</button>
+      <button type="button" class="template-sub-option" data-mode="submenu">下拉選單</button>
+      <button type="button" class="template-sub-option" data-mode="compose">自動組合文字</button>
+    </div>
+    <div id="tplEditFields"></div>
+    <div class="template-sub-row" style="margin-top:10px;">
+      <button type="button" id="tplEditSaveBtn" style="flex:1;">儲存</button>
+    </div>
+  `;
+  const modeRow = panel.querySelector('#tplEditModeRow');
+  const fieldsWrap = panel.querySelector('#tplEditFields');
+  let editState = { mode: modeNow, options: (tpl.options||[]).join('、'), suffix: tpl.suffix||'', prompt: tpl.prompt||'' };
+
+  function renderFields(){
+    Array.from(modeRow.children).forEach(b=> b.classList.toggle('active', b.dataset.mode === editState.mode));
+    if(editState.mode === 'submenu'){
+      fieldsWrap.innerHTML = `
+        <div class="field-label" style="margin:10px 0 4px;">選項（用「、」分隔）</div>
+        <input type="text" class="input-box" id="tplEditOptions" placeholder="例如：老公、哥哥、弟弟、爸爸、媽媽" value="${editState.options}">
+        <div class="field-label" style="margin:10px 0 4px;">選完自動加上的字尾（可留空）</div>
+        <input type="text" class="input-box" id="tplEditSuffix" placeholder="例如：生日" value="${editState.suffix}">
+      `;
+    } else if(editState.mode === 'compose'){
+      fieldsWrap.innerHTML = `
+        <div class="field-label" style="margin:10px 0 4px;">輸入框的提示文字</div>
+        <input type="text" class="input-box" id="tplEditPrompt" placeholder="例如：目的地" value="${editState.prompt}">
+        <div class="field-label" style="margin:10px 0 4px;">自動加上的字尾</div>
+        <input type="text" class="input-box" id="tplEditSuffix" placeholder="例如：之旅" value="${editState.suffix}">
+      `;
+    } else {
+      fieldsWrap.innerHTML = `<p class="hint">點這個範本只會套用固定顏色，內容自己手動輸入，跟原本一樣。</p>`;
+    }
+  }
+  renderFields();
+
+  Array.from(modeRow.children).forEach(b=>{
+    b.addEventListener('click', ()=>{
+      playClick();
+      editState.mode = b.dataset.mode;
+      renderFields();
+    });
+  });
+
+  panel.querySelector('#tplEditSaveBtn').addEventListener('click', ()=>{
+    playClick();
+    const newTpl = { name: tpl.name, mode: editState.mode };
+    if(editState.mode === 'submenu'){
+      const optInput = panel.querySelector('#tplEditOptions');
+      const suffixInput = panel.querySelector('#tplEditSuffix');
+      const opts = optInput.value.split('、').map(s=>s.trim()).filter(Boolean);
+      if(!opts.length){ showToast('請至少輸入一個選項'); return; }
+      newTpl.options = opts;
+      newTpl.suffix = suffixInput.value.trim();
+      newTpl.allowCustom = true;
+      newTpl.prompt = '其他';
+    } else if(editState.mode === 'compose'){
+      const promptInput = panel.querySelector('#tplEditPrompt');
+      const suffixInput = panel.querySelector('#tplEditSuffix');
+      newTpl.prompt = promptInput.value.trim();
+      newTpl.suffix = suffixInput.value.trim();
+    }
+    TEMPLATES[idx] = newTpl;
+    saveTemplates();
+    renderTemplateMenu();
+    panel.classList.add('hidden');
+    showToast('已更新範本設定！');
+  });
+
+  panel.classList.remove('hidden');
 }
 
 let newTemplateColorIdx = null;
@@ -1954,6 +2179,7 @@ function renderNewTemplateColorPicker(){
     chip.className = 'color-chip' + (i === newTemplateColorIdx ? ' active' : '');
     chip.style.backgroundColor = PALETTE[i].bg;
     chip.addEventListener('click', ()=>{
+      playSelectSound();
       newTemplateColorIdx = i;
       renderNewTemplateColorPicker();
     });
@@ -1964,8 +2190,8 @@ function renderNewTemplateColorPicker(){
 document.getElementById('addTemplateBtn').addEventListener('click', () => {
   const val = document.getElementById('newTemplateInput').value.trim();
   if (val) {
-    if (TEMPLATES.includes(val)) { showToast('已經有這個範本了'); return; }
-    TEMPLATES.push(val);
+    if (TEMPLATES.some(t=>t.name === val)) { showToast('已經有這個範本了'); return; }
+    TEMPLATES.push({ name: val, mode: 'plain' });
     TEMPLATE_COLORS[val] = newTemplateColorIdx != null ? newTemplateColorIdx : getOrAssignTemplateColor(val);
     saveTemplates();
     saveTemplateColors();
@@ -2051,42 +2277,25 @@ function renderGrid() {
   renderEvents();
 }
 
+let lastDayTapKey = null;
+let lastDayTapTime = 0;
+const DOUBLE_TAP_MS = 350;
 function attachDayPress(cell, key){
-  let timer = null, moved = false, fired = false, startX = 0, startY = 0;
-  const THRESHOLD = 480;
-  const start = (x, y) => {
-    moved = false; fired = false; startX = x; startY = y;
+  cell.addEventListener('click', () => {
     cell.classList.add('pressing');
-    timer = setTimeout(() => {
-      fired = true;
-      cell.classList.remove('pressing');
+    setTimeout(() => cell.classList.remove('pressing'), 150);
+    const now = Date.now();
+    if (lastDayTapKey === key && (now - lastDayTapTime) < DOUBLE_TAP_MS) {
+      lastDayTapKey = null; lastDayTapTime = 0;
+      playOpenSound();
       openDayDetailSheet(key);
-    }, THRESHOLD);
-  };
-  const clearTimer = () => {
-    if (timer) { clearTimeout(timer); timer = null; }
-    cell.classList.remove('pressing');
-  };
-  const finish = () => {
-    clearTimer();
-    if (!fired && !moved) {
+    } else {
+      lastDayTapKey = key; lastDayTapTime = now;
+      playSelectSound();
       selectedDateKey = key;
       renderGrid();
     }
-  };
-  cell.addEventListener('touchstart', e => { const t = e.touches[0]; start(t.clientX, t.clientY); }, { passive: true });
-  cell.addEventListener('touchmove', e => {
-    const t = e.touches[0];
-    if (Math.abs(t.clientX - startX) > 10 || Math.abs(t.clientY - startY) > 10) { moved = true; clearTimer(); }
-  }, { passive: true });
-  cell.addEventListener('touchend', finish);
-  cell.addEventListener('touchcancel', clearTimer);
-  cell.addEventListener('mousedown', e => start(e.clientX, e.clientY));
-  cell.addEventListener('mousemove', e => {
-    if (timer && (Math.abs(e.clientX - startX) > 10 || Math.abs(e.clientY - startY) > 10)) { moved = true; clearTimer(); }
   });
-  cell.addEventListener('mouseup', finish);
-  cell.addEventListener('mouseleave', clearTimer);
 }
 
 function buildSpanGroups(){
@@ -2160,6 +2369,7 @@ function renderEvents() {
   });
 
   // 有到期日的待辦事項，也直接顯示在月曆對應日期上，讓月曆本身就是總覽
+  // 這些待辦標籤有自己專屬的點擊行為（跳到待辦分頁），跟格子本身的點擊分開處理，不會互相干擾
   TODOS.forEach(t => {
     if (!t.dueDate) return;
     const container = document.getElementById(`evt-${t.dueDate}`);
@@ -2167,6 +2377,11 @@ function renderEvents() {
     const tag = document.createElement('div');
     tag.className = 'event-tag todo-marker' + (t.done ? ' done' : '');
     tag.textContent = (t.done ? '✓ ' : '☐ ') + t.text;
+    tag.addEventListener('click', (e) => {
+      e.stopPropagation();
+      playSelectSound();
+      switchTab(1);
+    });
     container.appendChild(tag);
   });
 
@@ -2196,7 +2411,7 @@ function renderEvents() {
       bar.style.top = (spacerRect.top - gridRect.top) + 'px';
       bar.style.height = spacerRect.height + 'px';
       bar.textContent = run.evt.text;
-      bar.addEventListener('click', () => openDayDetailSheet(run.startKey));
+      bar.addEventListener('click', () => { playOpenSound(); openDayDetailSheet(run.startKey); });
       overlay.appendChild(bar);
     });
   }
@@ -2230,6 +2445,17 @@ function closeSheet(id) {
   document.getElementById(id).classList.add('hidden');
 }
 
+// 每個底部彈出視窗，除了按 ✕ 之外，直接點上方空白（半透明背景）的地方也可以關閉，
+// 不用一定要點到那個小小的 ✕ 按鈕
+document.querySelectorAll('.sheet-overlay').forEach(overlay => {
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      playSelectSound();
+      overlay.classList.add('hidden');
+    }
+  });
+});
+
 function renderNotifyTimeOptions(offset){
   const sel = document.getElementById('eventNotifyTimeSelect');
   if (!offset) {
@@ -2255,7 +2481,7 @@ function setNotifyOffsetToggle(offset){
   renderNotifyTimeOptions(offset);
   const hint = document.getElementById('notifyDefaultHint');
   if (!offset) {
-    hint.textContent = `預設：前一天 ${String(SETTINGS.hour).padStart(2,'0')}:${String(SETTINGS.minute).padStart(2,'0')} 提醒`;
+    hint.textContent = `預設：當天 ${String(SETTINGS.hour).padStart(2,'0')}:${String(SETTINGS.minute).padStart(2,'0')} 提醒`;
     hint.classList.remove('hidden');
   } else {
     hint.classList.add('hidden');
@@ -2322,7 +2548,7 @@ function refreshExistingList(){
     row.className = 'existing-item' + (editingGid === evt.gid ? ' editing' : '');
     const spanLabel = evt.span ? '（連續多天）' : '';
     row.innerHTML = `<span class="dot" style="background:${col.bg};"></span><span class="txt editable-txt">${evt.text}${spanLabel}</span><button aria-label="刪除">✕</button>`;
-    row.querySelector('.editable-txt').addEventListener('click', ()=> startEditEvent(evt));
+    row.querySelector('.editable-txt').addEventListener('click', ()=> { playSelectSound(); startEditEvent(evt); });
     row.querySelector('button').addEventListener('click', (e)=>{ e.stopPropagation(); deleteEventGroup(evt.gid); });
     list.appendChild(row);
   });
@@ -2339,7 +2565,7 @@ function startEditEvent(evt){
   renderPalette();
   const range = findGidDateRange(evt.gid);
   document.getElementById('eventDaysInput').value = Math.max(1, range.length);
-  const offset = (evt.notifyHour != null) ? (evt.notifyOffset || 'before') : '';
+  const offset = (evt.notifyHour != null) ? (evt.notifyOffset || 'same') : '';
   setNotifyOffsetToggle(offset);
   if (offset) document.getElementById('eventNotifyTimeSelect').value = `${offset}:${evt.notifyHour}:${evt.notifyMinute||0}`;
   document.getElementById('saveEventBtn').textContent = '更新這筆';
@@ -2422,6 +2648,7 @@ function renderTodos(){
       <button class="todo-del" aria-label="刪除">✕</button>
     `;
     row.querySelector('.todo-check').addEventListener('click', ()=>{
+      playClick();
       item.done = !item.done;
       item.completedAt = item.done ? Date.now() : 0;
       saveTodos();
@@ -2637,6 +2864,7 @@ function renderPalette(){
     chip.className = 'color-chip' + (i === activeColorIdx ? ' active' : '');
     chip.style.backgroundColor = col.bg;
     chip.addEventListener('click', () => {
+      playSelectSound();
       activeColorIdx = i;
       renderPalette();
     });
@@ -2648,34 +2876,56 @@ function renderPalette(){
 /* ============ 按鍵音 ============ */
 let audioCtx = null;
 function ensureAudioCtx(){
-  if(!audioCtx){
-    try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ audioCtx = null; }
-  }
-  if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  try{
+    if(!audioCtx || audioCtx.state === 'closed'){
+      audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    }
+    if(audioCtx.state === 'suspended'){
+      audioCtx.resume().catch(()=>{});
+    }
+  }catch(e){ audioCtx = null; }
   return audioCtx;
 }
-function playClick(){
-  try{
-    const ctx = ensureAudioCtx();
-    if(!ctx) return;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(1000, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(700, ctx.currentTime+0.09);
-    gain.gain.setValueAtTime(0.001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime+0.008);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.13);
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime+0.14);
-  }catch(e){ /* 裝置不支援音效就略過 */ }
+// 每次真正要發聲之前，都先確保 AudioContext 是醒著的——
+// 手機瀏覽器常常會在切到背景、鎖螢幕、切分頁之後把它自動睡眠掉，
+// 只在第一次點擊時建立一次是不夠的，這也是「有時候沒聲音」的主因
+function playTone(freqStart, freqEnd, duration, gainPeak, type){
+  const ctx = ensureAudioCtx();
+  if(!ctx) return;
+  const run = () => {
+    try{
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || 'triangle';
+      osc.frequency.setValueAtTime(freqStart, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(freqEnd, ctx.currentTime+duration*0.7);
+      gain.gain.setValueAtTime(0.001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(gainPeak, ctx.currentTime+0.008);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+duration);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime+duration+0.02);
+    }catch(e){ /* 裝置不支援音效就略過 */ }
+  };
+  if(ctx.state === 'suspended'){ ctx.resume().then(run).catch(()=>{}); } else { run(); }
+}
+// 一般按鈕：清脆的短音
+function playClick(){ playTone(1000, 700, 0.13, 0.3, 'triangle'); }
+// 點日期格子做「選取」：更輕、更短，感覺像是輕輕點一下
+function playSelectSound(){ playTone(650, 500, 0.07, 0.16, 'sine'); }
+// 雙擊打開當天內頁：兩段音，感覺像是「開門」，跟一般按鈕音明顯不同
+function playOpenSound(){
+  playTone(700, 1000, 0.09, 0.26, 'triangle');
+  setTimeout(()=>playTone(1000, 1300, 0.11, 0.26, 'triangle'), 70);
 }
 ['touchstart','click'].forEach(evt=>{
-  document.addEventListener(evt, ()=>ensureAudioCtx(), {once:true, passive:true});
+  document.addEventListener(evt, ()=>ensureAudioCtx(), {passive:true});
+});
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible') ensureAudioCtx();
 });
 document.addEventListener('click', e=>{
-  if(e.target.closest('button')) playClick();
+  if(e.target.closest('button') && !e.target.closest('.day-cell')) playClick();
 }, true);
 
 function showToast(msg) {
@@ -2691,6 +2941,7 @@ function applyNotifySwitch(){
   document.getElementById('notifySwitch').classList.toggle('on', !!SETTINGS.notifyEnabled);
 }
 document.getElementById('notifySwitch').addEventListener('click', () => {
+  playClick();
   SETTINGS.notifyEnabled = !SETTINGS.notifyEnabled;
   applyNotifySwitch();
   saveSettings();
@@ -2741,7 +2992,7 @@ document.getElementById('importFile').addEventListener('change', (e) => {
       const data = JSON.parse(evt.target.result);
       if (data.events) EVENTS = data.events;
       if (data.nav) NAV_ITEMS = data.nav;
-      if (data.templates) TEMPLATES = data.templates;
+      if (data.templates) TEMPLATES = migrateTemplates(data.templates);
       if (data.templateColors) TEMPLATE_COLORS = data.templateColors;
       if (data.settings) SETTINGS = { ...SETTINGS, ...data.settings };
       if (data.todos) TODOS = data.todos;
@@ -2818,6 +3069,7 @@ setInterval(updateClockDisplay, 1000);
 updateClockDisplay();
 
 document.getElementById('clockRowMain').addEventListener('click', () => {
+  playOpenSound();
   const now = new Date();
   openDayDetailSheet(dateKeyOf(now.getFullYear(), now.getMonth()+1, now.getDate()));
 });

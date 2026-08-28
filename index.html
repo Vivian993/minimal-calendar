@@ -1681,7 +1681,8 @@ const PALETTE = [
   { bg: '#C8CBF5', text: '#3B3F8C' },  /* 靛/薰衣草藍 */
   { bg: '#E0C2F0', text: '#692F8C' },  /* 紫 */
   { bg: '#F5C2DD', text: '#8C2F60' },  /* 粉紫紅 */
-  { bg: '#BEE9DF', text: '#1F6C5C' }   /* 哥哥的行事曆專用色（弟弟之後再另外指定一個新顏色） */
+  { bg: '#BEE9DF', text: '#1F6C5C' },  /* 哥哥的行事曆專用色 */
+  { bg: '#F5B87A', text: '#7A4A0E' }   /* 弟弟的行事曆專用色（跟哥哥的青色明顯不同） */
 ];
 
 /* 每個範本固定自己的顏色，彼此不重複；新增範本時可自己選一個還沒被用掉的顏色 */
@@ -1696,7 +1697,7 @@ function saveTemplateColors(){ return saveJSON('my_template_colors_v1', TEMPLATE
 function getOrAssignTemplateColor(name){
   if (TEMPLATE_COLORS[name] != null) return TEMPLATE_COLORS[name];
   const used = new Set(Object.values(TEMPLATE_COLORS));
-  used.add(8); // 保留給哥哥的行事曆專用色，範本自動配色不會用到
+  used.add(8); used.add(9); // 保留給哥哥、弟弟的行事曆專用色，範本自動配色不會用到
   let idx = 0;
   for (let i=0; i<PALETTE.length; i++){ if(!used.has(i)){ idx=i; break; } }
   TEMPLATE_COLORS[name] = idx;
@@ -1705,7 +1706,7 @@ function getOrAssignTemplateColor(name){
 }
 function unusedPaletteIndexes(){
   const used = new Set(Object.values(TEMPLATE_COLORS));
-  used.add(8);
+  used.add(8); used.add(9);
   return PALETTE.map((_,i)=>i).filter(i=>!used.has(i));
 }
 
